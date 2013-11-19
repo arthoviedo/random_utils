@@ -1,0 +1,492 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0062)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: Sprites</title>
+  <meta http-equiv="description" content="The basis of most games is the movement of objects over a background landscape. In this part of the series on emulation development, I take a look at how the GameBoy produces movable objects, and how the process can be emulated in JavaScript.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/jsgb-gpu-sprite.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/jsgb-gpu-sprite.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-gpu-sprite.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-gpu-sprite.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: Sprites</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 7 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/Imran Nazar  GameBoy Emulation in JavaScript  Sprites.htm">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+ </em>
+<p></p>
+<p>Previously in this series, the emulator was extended to enable keypad input, which meant that a game of tic-tac-toe could be played. The problem left by this was that the game had to be played blind: there was no indication of where the next move would be made, nor of to where on the game a keypress would move you. Traditionally, two-dimensional gaming consoles have solved this issue through the use of sprites: movable object blocks that can be placed independently of the background, and which contain data separate to that of the background.</p>
+<p>The GameBoy is no exception in this regard: it provides for sprites to be placed above or below the background, and multiple sprites to be on screen at the same time. Once this has been implemented in the emulator, the tic-tac-toe game runs as below.</p>
+<div class="img">
+ <div id="jsgb">
+  <script src="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/jsgb-gpu-sprite.jsgb.js"></script><script type="text/vbscript">
+Function BinFileReaderImpl_IE_VBAjaxLoader(fileName)
+	Dim xhr
+	Set xhr = CreateObject("Microsoft.XMLHTTP")
+
+	xhr.Open "GET", fileName, False
+
+	xhr.setRequestHeader "Accept-Charset", "x-user-defined"
+	xhr.send
+
+	Dim byteArray()
+
+	if xhr.Status = 200 Then
+		Dim byteString
+		Dim i
+
+		byteString=xhr.responseBody
+
+		ReDim byteArray(LenB(byteString))
+
+		For i = 1 To LenB(byteString)
+			byteArray(i-1) = AscB(MidB(byteString, i, 1))
+		Next
+	End If
+
+	BinFileReaderImpl_IE_VBAjaxLoader=byteArray
+End Function
+</script>
+  <div id="jsgb_msg">{1384512021729ms} [GPU] Initialising screen.<br>{1384512021744ms} [GPU] Reset.<br>{1384512021744ms} [MMU] Reset.<br>{1384512021744ms} [Z80] Reset.<br>{1384512022165ms} [MMU] ROM loaded, 32768 bytes.<br></div>
+  <canvas id="jsgb_screen" width="160" height="144"></canvas><br>
+  <a id="jsgb_reset">Reset</a> | <a id="jsgb_run">Run</a><br>
+ </div>
+ <em>Figure 1: jsGB implementation with sprites</em>
+</div>
+<h3>Introduction: GameBoy sprites</h3>
+<p>GameBoy sprites are graphic tiles, just like those used for the background: this means that each sprite is 8x8 pixels. As stated above, a sprite can be placed anywhere on the screen, including halfway or all the way off-screen, and it can be placed above or below the background. What this means technically is that sprites below the background show through where the background has colour value 0.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Sprites_files/jsgb-gpu-sprite-prio.png" alt="Sprite priorities">
+ <em>Figure 2: Sprite priorities</em>
+</div>
+<p>In the above figure, the sprite above the background shows the background through the middle of it, since these pixels in the sprite are set to colour 0; in the same way, the background lets through the sprites below it where the background colour is 0. In order to simulate this in an emulator, the simplest procedure would be to render the sprites below the background, then the background itself, and finally the sprites above it. However, this is a somewhat naive algorithm, since it duplicates the sprite rendering process; it's simpler instead to draw the background first, then work out whether a given pixel in the sprite should appear based on its priority and the background colour at that position.</p>
+<div class="sample">
+ <h4>Pseudocode for sprite rendering</h4>
+ <div class="inner">For each row in sprite
+    If this row is on screen
+        For each pixel in row
+            If this pixel is on screen
+	        If this pixel is transparent
+		    <span class="grn">* Do nothing</span>
+		Else
+		    If the sprite has priority
+		        <span class="red">Draw pixel</span>
+		    Else if this pixel in the background is 0
+		        <span class="red">Draw pixel</span>
+		    Else
+		        <span class="grn">* Do nothing</span>
+		    End If
+		End If
+	    End If
+        End For
+    End If
+End For</div>
+</div>
+<p>One additional complication to the GameBoy sprite system is that a sprite can be "flipped" horizontally or vertically by the hardware, at the time it's rendered; this saves space in the game, since (for example) a spaceship flying backwards can be represented by the same sprite as forward motion, with the appropriate flip applied.</p>
+<h3>Sprite data: Object Attribute Memory</h3>
+<p>The GameBoy can hold information about 40 sprites, in a dedicated region of memory called Object Attribute Memory (OAM). Each of the 40 sprites has four bytes of data in the OAM associated with it, as detailed below.</p>
+<div class="img">
+ <table>
+  <thead><tr><th>Byte</th><th>Description</th></tr></thead>
+  <tbody>
+   <tr><td>0</td><td>Y-coordinate of top-left corner<br>(Value stored is Y-coordinate minus 16)</td></tr>
+   <tr><td>1</td><td>X-coordinate of top-left corner<br>(Value stored is X-coordinate minus 8)</td></tr>
+   <tr><td>2</td><td>Data tile number</td></tr>
+   <tr><td>3</td><td>Options
+    <table>
+     <thead><tr><th>Bit</th><th>Description</th><th>When 0</th><th>When 1</th></tr></thead>
+     <tbody>
+      <tr><td>7</td><td>Sprite/background priority</td><td>Above background</td><td>Below background<br>(except colour 0)</td></tr>
+      <tr><td>6</td><td>Y-flip</td><td>Normal</td><td>Vertically flipped</td></tr>
+      <tr><td>5</td><td>X-flip</td><td>Normal</td><td>Horizontally flipped</td></tr>
+      <tr><td>4</td><td>Palette</td><td>OBJ palette #0</td><td>OBJ palette #1</td></tr>
+     </tbody>
+    </table>
+   </td></tr>
+  </tbody>
+ </table>
+ <em>Table 1: OAM data for a sprite</em>
+</div>
+<p>In order to more easily access this information when it comes to rendering a scanline, it's useful to build a structure to hold the sprite data, which is filled in based on the contents of the OAM. When data is written to the OAM, the MMU in consort with the graphics emulation can update this structure for later use. An implementation of this would be as follows.</p>
+<div class="sample">
+ <h4>MMU.js: OAM access</h4>
+ <div class="inner">    rb: <span class="blu">function</span>(addr)
+    {
+	<span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    ...
+	    <span class="blu">case</span> <span class="red">0xF000</span>:
+	        <span class="blu">switch</span>(addr &amp; <span class="red">0x0F00</span>)
+		{
+		    ...
+		    <span class="grn">// OAM</span>
+		    <span class="blu">case</span> <span class="red">0xE00</span>:
+		        <span class="blu">return</span> (addr &lt; <span class="red">0xFEA0</span>) ? GPU._oam[addr &amp; <span class="red">0xFF</span>] : 0;
+		}
+	}
+    },
+
+    wb: <span class="blu">function</span>(addr)
+    {
+	<span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    ...
+	    <span class="blu">case</span> <span class="red">0xF000</span>:
+	        <span class="blu">switch</span>(addr &amp; <span class="red">0x0F00</span>)
+		{
+		    ...
+		    <span class="grn">// OAM</span>
+		    <span class="blu">case</span> <span class="red">0xE00</span>:
+		        <span class="blu">if</span>(addr &lt; <span class="red">0xFEA0</span>) GPU._oam[addr &amp; <span class="red">0xFF</span>] = val;
+			GPU.buildobjdata(addr - <span class="red">0xFE00</span>, val);
+			<span class="blu">break</span>;
+		}
+	}
+    }</div>
+ <h4>GPU.js: Sprite structure</h4>
+ <div class="inner">    _oam: [],
+    _objdata: [],
+
+    reset: <span class="blu">function</span>()
+    {
+        <span class="grn">// In addition to previous reset code:</span>
+	<span class="blu">for</span>(<span class="blu">var</span> i=<span class="red">0</span>, n=<span class="red">0</span>; i &lt; <span class="red">40</span>; i++, n+=<span class="red">4</span>)
+	{
+	    GPU._oam[n + <span class="red">0</span>] = <span class="red">0</span>;
+	    GPU._oam[n + <span class="red">1</span>] = <span class="red">0</span>;
+	    GPU._oam[n + <span class="red">2</span>] = <span class="red">0</span>;
+	    GPU._oam[n + <span class="red">3</span>] = <span class="red">0</span>;
+	    GPU._objdata[i] = {
+	        <span class="red">'y'</span>: <span class="red">-16</span>, <span class="red">'x'</span>: <span class="red">-8</span>,
+		<span class="red">'tile'</span>: <span class="red">0</span>, <span class="red">'palette'</span>: <span class="red">0</span>,
+		<span class="red">'xflip'</span>: <span class="red">0</span>, <span class="red">'yflip'</span>: <span class="red">0</span>, <span class="red">'prio'</span>: <span class="red">0</span>, <span class="red">'num'</span>: i
+	    };
+	}
+    },
+
+    buildobjdata: <span class="blu">function</span>(addr, val)
+    {
+	<span class="blu">var</span> obj = addr &gt;&gt; <span class="red">2</span>;
+	<span class="blu">if</span>(obj &lt; <span class="red">40</span>)
+	{
+	    <span class="blu">switch</span>(addr &amp; <span class="red">3</span>)
+	    {
+	        <span class="grn">// Y-coordinate</span>
+	        <span class="blu">case</span> <span class="red">0</span>: GPU._objdata[obj].y = val-<span class="red">16</span>; <span class="blu">break</span>;
+		
+		<span class="grn">// X-coordinate</span>
+		<span class="blu">case</span> <span class="red">1</span>: GPU._objdata[obj].x = val-<span class="red">8</span>; <span class="blu">break</span>;
+
+		<span class="grn">// Data tile</span>
+		<span class="blu">case</span> <span class="red">2</span>: GPU._objdata[obj].tile = val; <span class="blu">break</span>;
+
+		<span class="grn">// Options</span>
+		<span class="blu">case</span> <span class="red">3</span>:
+		    GPU._objdata[obj].palette = (val &amp; <span class="red">0x10</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		    GPU._objdata[obj].xflip   = (val &amp; <span class="red">0x20</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		    GPU._objdata[obj].yflip   = (val &amp; <span class="red">0x40</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		    GPU._objdata[obj].prio    = (val &amp; <span class="red">0x80</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		    <span class="blu">break</span>;
+	    }
+	}
+    }</div>
+</div>
+<h3>Sprite palettes</h3>
+<p>As hinted above, the GPU offers a choice of two palettes for the sprites: each of the 40 sprites can use one of the two palettes, as specified in its OAM entry. These object palettes are stored in the GPU, in addition to the background palette, and can be changed through I/O registers in much the same manner as the palette for the background.</p>
+<div class="sample">
+ <h4>GPU.js: Sprite palette handling</h4>
+ <div class="inner">    _pal: {
+        bg: [],
+	obj0: [],
+	obj1: []
+    },
+
+    wb: <span class="blu">function</span>(addr)
+    {
+        <span class="blu">switch</span>(addr)
+	{
+	    <span class="grn">// ...</span>
+	    <span class="grn">// Background palette</span>
+	    <span class="blu">case</span> <span class="red">0xFF47</span>:
+	        <span class="blu">for</span>(<span class="blu">var</span> i = <span class="red">0</span>; i &lt; <span class="red">4</span>; i++)
+		{
+		    <span class="blu">switch</span>((val &gt;&gt; (i * <span class="red">2</span>)) &amp; <span class="red">3</span>)
+		    {
+		        <span class="blu">case</span> <span class="red">0</span>: GPU._pal.bg[i] = [<span class="red">255</span>,<span class="red">255</span>,<span class="red">255</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">1</span>: GPU._pal.bg[i] = [<span class="red">192</span>,<span class="red">192</span>,<span class="red">192</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">2</span>: GPU._pal.bg[i] = [ <span class="red">96</span>, <span class="red">96</span>, <span class="red">96</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">3</span>: GPU._pal.bg[i] = [  <span class="red">0</span>,  <span class="red">0</span>,  <span class="red">0</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+		    }
+		}
+		<span class="blu">break</span>;
+
+	    <span class="grn">// Object palettes</span>
+	    <span class="blu">case</span> <span class="red">0xFF48</span>:
+	        <span class="blu">for</span>(<span class="blu">var</span> i = <span class="red">0</span>; i &lt; <span class="red">4</span>; i++)
+		{
+		    <span class="blu">switch</span>((val &gt;&gt; (i * <span class="red">2</span>)) &amp; <span class="red">3</span>)
+		    {
+		        <span class="blu">case</span> <span class="red">0</span>: GPU._pal.obj0[i] = [<span class="red">255</span>,<span class="red">255</span>,<span class="red">255</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">1</span>: GPU._pal.obj0[i] = [<span class="red">192</span>,<span class="red">192</span>,<span class="red">192</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">2</span>: GPU._pal.obj0[i] = [ <span class="red">96</span>, <span class="red">96</span>, <span class="red">96</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">3</span>: GPU._pal.obj0[i] = [  <span class="red">0</span>,  <span class="red">0</span>,  <span class="red">0</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+		    }
+		}
+		<span class="blu">break</span>;
+
+	    <span class="blu">case</span> <span class="red">0xFF49</span>:
+	        <span class="blu">for</span>(<span class="blu">var</span> i = <span class="red">0</span>; i &lt; <span class="red">4</span>; i++)
+		{
+		    <span class="blu">switch</span>((val &gt;&gt; (i * <span class="red">2</span>)) &amp; <span class="red">3</span>)
+		    {
+		        <span class="blu">case</span> <span class="red">0</span>: GPU._pal.obj1[i] = [<span class="red">255</span>,<span class="red">255</span>,<span class="red">255</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">1</span>: GPU._pal.obj1[i] = [<span class="red">192</span>,<span class="red">192</span>,<span class="red">192</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">2</span>: GPU._pal.obj1[i] = [ <span class="red">96</span>, <span class="red">96</span>, <span class="red">96</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">3</span>: GPU._pal.obj1[i] = [  <span class="red">0</span>,  <span class="red">0</span>,  <span class="red">0</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+		    }
+		}
+		<span class="blu">break</span>;
+	}
+    }</div>
+</div>
+<h3>Rendering sprites</h3>
+<p>The GameBoy graphics system renders each line of the screen as it's encountered: this includes not only the background, but the sprites below and above it. In other words, rendering of the sprites must be added to the scanline renderer, as a process that occurs after drawing the background. Just as with the background, there's a switch to enable sprites within the LCDC register, and this must be added to the I/O handling for the GPU.</p>
+<p>Since a sprite can be anywhere on the screen, including positioned somewhere off-screen, the renderer has to check which sprites are positioned within the current scanline. The simplest algorithm for this is to check the position of each one, and render the appropriate line of the sprite if it falls within the bounds of the scanline. The sprite data can be retrieved in the same way as it is for the background, through the pre-calculated tile set. An example of these things brought together is as follows.</p>
+<div class="sample">
+ <h4>GPU.js: Rendering a scanline with sprites</h4>
+ <div class="inner">    renderscan: <span class="blu">function</span>()
+    {
+        <span class="grn">// Scanline data, for use by sprite renderer</span>
+	<span class="blu">var</span> scanrow = [];
+
+        <span class="grn">// Render background if it's switched on</span>
+        <span class="blu">if</span>(GPU._switchbg)
+	{
+	    <span class="blu">var</span> mapoffs = GPU._bgmap ? <span class="red">0x1C00</span> : <span class="red">0x1800</span>;
+	    mapoffs += ((GPU._line + GPU._scy) &amp; <span class="red">255</span>) &gt;&gt; <span class="red">3</span>;
+	    <span class="blu">var</span> lineoffs = (GPU._scx &gt;&gt; <span class="red">3</span>);
+	    <span class="blu">var</span> y = (GPU._line + GPU._scy) &amp; <span class="red">7</span>;
+	    <span class="blu">var</span> x = GPU._scx &amp; <span class="red">7</span>;
+	    <span class="blu">var</span> canvasoffs = GPU._line * <span class="red">160</span> * <span class="red">4</span>;
+	    <span class="blu">var</span> colour;
+	    <span class="blu">var</span> tile = GPU._vram[mapoffs + lineoffs];
+
+	    <span class="grn">// If the tile data set in use is #1, the
+	    // indices are signed; calculate a real tile offset</span>
+	    <span class="blu">if</span>(GPU._bgtile == <span class="red">1</span> &amp;&amp; tile &lt; <span class="red">128</span>) tile += <span class="red">256</span>;
+
+	    <span class="blu">for</span>(<span class="blu">var</span> i = <span class="red">0</span>; i &lt; <span class="red">160</span>; i++)
+	    {
+	        <span class="grn">// Re-map the tile pixel through the palette</span>
+	        colour = GPU._pal.bg[GPU._tileset[tile][y][x]];
+
+	        <span class="grn">// Plot the pixel to canvas</span>
+	        GPU._scrn.data[canvasoffs+<span class="red">0</span>] = colour[<span class="red">0</span>];
+	        GPU._scrn.data[canvasoffs+<span class="red">1</span>] = colour[<span class="red">1</span>];
+	        GPU._scrn.data[canvasoffs+<span class="red">2</span>] = colour[<span class="red">2</span>];
+	        GPU._scrn.data[canvasoffs+<span class="red">3</span>] = colour[<span class="red">3</span>];
+	        canvasoffs += <span class="red">4</span>;
+
+		<span class="grn">// Store the pixel for later checking</span>
+		scanrow[i] = GPU._tileset[tile][y][x];
+
+	        <span class="grn">// When this tile ends, read another</span>
+	        x++;
+	        <span class="blu">if</span>(x == <span class="red">8</span>)
+	        {
+	    	    x = <span class="red">0</span>;
+	    	    lineoffs = (lineoffs + <span class="red">1</span>) &amp; <span class="red">31</span>;
+	    	    tile = GPU._vram[mapoffs + lineoffs];
+	    	    <span class="blu">if</span>(GPU._bgtile == <span class="red">1</span> &amp;&amp; tile &lt; <span class="red">128</span>) tile += <span class="red">256</span>;
+	        }
+	    }
+	}
+
+	<span class="grn">// Render sprites if they're switched on</span>
+	<span class="blu">if</span>(GPU._switchobj)
+	{
+	    <span class="blu">for</span>(<span class="blu">var</span> i = <span class="red">0</span>; i &lt; <span class="red">40</span>; i++)
+	    {
+	        <span class="blu">var</span> obj = GPU._objdata[i];
+
+		<span class="grn">// Check if this sprite falls on this scanline</span>
+		<span class="blu">if</span>(obj.y &lt;= GPU._line &amp;&amp; (obj.y + <span class="red">8</span>) &gt; GPU._line)
+		{
+		    <span class="grn">// Palette to use for this sprite</span>
+		    <span class="blu">var</span> pal = obj.pal ? GPU._pal.obj1 : GPU._pal.obj0;
+
+        	    <span class="grn">// Where to render on the canvas</span>
+		    <span class="blu">var</span> canvasoffs = (GPU._line * <span class="red">160</span> + obj.x) * <span class="red">4</span>;
+
+		    <span class="grn">// Data for this line of the sprite</span>
+		    <span class="blu">var</span> tilerow;
+
+		    <span class="grn">// If the sprite is Y-flipped,
+		    // use the opposite side of the tile</span>
+		    <span class="blu">if</span>(obj.yflip)
+		    {
+		        tilerow = GPU._tileset[obj.tile]
+			                      [<span class="red">7</span> - (GPU._line - obj.y)];
+		    }
+		    <span class="blu">else</span>
+		    {
+		        tilerow = GPU._tileset[obj.tile]
+			                      [GPU._line - obj.y];
+		    }
+
+		    <span class="blu">var</span> colour;
+		    <span class="blu">var</span> x;
+
+		    <span class="blu">for</span>(<span class="blu">var</span> x = <span class="red">0</span>; x &lt; <span class="red">8</span>; x++)
+		    {
+		        <span class="grn">// If this pixel is still on-screen, AND
+			// if it's not colour 0 (transparent), AND
+			// if this sprite has priority OR shows under the bg
+			// then render the pixel</span>
+			<span class="blu">if</span>((obj.x + x) &gt;= <span class="red">0</span> &amp;&amp; (obj.x + x) &lt; <span class="red">160</span> &amp;&amp;
+			   tilerow[x] &amp;&amp;
+			   (obj.prio || !scanrow[obj.x + x]))
+			{
+		            <span class="grn">// If the sprite is X-flipped,
+			    // write pixels in reverse order</span>
+			    colour = pal[tilerow[obj.xflip ? (<span class="red">7</span>-x) : x]];
+
+			    GPU._scrn.data[canvasoffs+<span class="red">0</span>] = colour[<span class="red">0</span>];
+			    GPU._scrn.data[canvasoffs+<span class="red">1</span>] = colour[<span class="red">1</span>];
+			    GPU._scrn.data[canvasoffs+<span class="red">2</span>] = colour[<span class="red">2</span>];
+			    GPU._scrn.data[canvasoffs+<span class="red">3</span>] = colour[<span class="red">3</span>];
+
+			    canvasoffs += <span class="red">4</span>;
+			}
+		    }
+		}
+	    }
+	}
+    },
+    
+    rb: <span class="blu">function</span>(addr)
+    {
+        <span class="blu">switch</span>(addr)
+	{
+	    <span class="grn">// LCD Control</span>
+	    <span class="blu">case</span> <span class="red">0xFF40</span>:
+	        <span class="blu">return</span> (GPU._switchbg  ? <span class="red">0x01</span> : <span class="red">0x00</span>) |
+		       (GPU._switchobj ? <span class="red">0x02</span> : <span class="red">0x00</span>) |
+		       (GPU._bgmap     ? <span class="red">0x08</span> : <span class="red">0x00</span>) |
+		       (GPU._bgtile    ? <span class="red">0x10</span> : <span class="red">0x00</span>) |
+		       (GPU._switchlcd ? <span class="red">0x80</span> : <span class="red">0x00</span>);
+
+	    <span class="grn">// ...</span>
+	}
+    },
+
+    wb: <span class="blu">function</span>(addr, val)
+    {
+        <span class="blu">switch</span>(addr)
+	{
+	    <span class="grn">// LCD Control</span>
+	    <span class="blu">case</span> <span class="red">0xFF40</span>:
+	        GPU._switchbg  = (val &amp; <span class="red">0x01</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		GPU._switchobj = (val &amp; <span class="red">0x02</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		GPU._bgmap     = (val &amp; <span class="red">0x08</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		GPU._bgtile    = (val &amp; <span class="red">0x10</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		GPU._switchlcd = (val &amp; <span class="red">0x80</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		<span class="blu">break</span>;
+
+	    <span class="grn">// ...</span>
+	}
+    }</div>
+</div>
+<h3>Coming up</h3>
+<p>With sprites in place, basic games like the tic-tac-toe running in Figure 1 can work in full. Many games, however, will not run without something else: a method of determining when the screen can be redrawn. Almost every game will perform a "refresh" of the screen data while the screen is in vertical blanking, since changes to the screen won't show up until the next time the GPU comes to draw a frame.</p>
+<p>Basic games and demos sometimes do this by checking whether the GPU has hit line #144 in its redrawing process, but this takes up a lot of processing power in repeated looping. The more common method is for the game to be informed when an event has occurred: this message is referred to as an interrupt. In the next part, I'll take a look at the vertical blanking interrupt in particular, and how it can be simulated to provide this message passing process to an emulated game.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Oct 2010.</em></p>
+<p><em>Article dated: 10th Oct 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

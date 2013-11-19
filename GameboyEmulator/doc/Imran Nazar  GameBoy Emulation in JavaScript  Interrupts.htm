@@ -1,0 +1,369 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0065)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: Interrupts</title>
+  <meta http-equiv="description" content="Game consoles, like all computers, offer the facility to break off execution of a program and handle events or triggers. The GameBoy is no exception, and most games utilise the vertical blanking interrupt as one of their primary tools for keeping time and refreshing the screen. In part 8 of the series on emulator development, I look at the concepts behind, and the implementation of interrupts.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/jsgb-int.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/jsgb-int.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-int.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-int.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: Interrupts</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 8 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/Imran Nazar  GameBoy Emulation in JavaScript  Interrupts.htm">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+ </em>
+<p></p>
+<p><strong>Please note: This article has been updated to remove an incorrect interrupt handling procedure.</strong> --12th Nov, 2010</p>
+<p>In the previous part, the foundations for simulating a game were laid, with the introduction of sprites. However, one aspect was missing from the emulator: the vertical blanking interrupt. In this part, interrupts as a whole will be introduced, and the blanking interrupt in particular will be implemented; once this has been done, the emulator will run Tetris.</p>
+<div class="img">
+ <div id="jsgb">
+  <script src="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/jsgb-int.jsgb.js"></script><script type="text/vbscript">
+Function BinFileReaderImpl_IE_VBAjaxLoader(fileName)
+	Dim xhr
+	Set xhr = CreateObject("Microsoft.XMLHTTP")
+
+	xhr.Open "GET", fileName, False
+
+	xhr.setRequestHeader "Accept-Charset", "x-user-defined"
+	xhr.send
+
+	Dim byteArray()
+
+	if xhr.Status = 200 Then
+		Dim byteString
+		Dim i
+
+		byteString=xhr.responseBody
+
+		ReDim byteArray(LenB(byteString))
+
+		For i = 1 To LenB(byteString)
+			byteArray(i-1) = AscB(MidB(byteString, i, 1))
+		Next
+	End If
+
+	BinFileReaderImpl_IE_VBAjaxLoader=byteArray
+End Function
+</script>
+  <div id="jsgb_msg">{1384512023276ms} [GPU] Initialising screen.<br>{1384512023291ms} [GPU] Reset.<br>{1384512023291ms} [MMU] Reset.<br>{1384512023291ms} [Z80] Reset.<br>{1384512023728ms} [MMU] ROM loaded, 32768 bytes.<br></div>
+  <canvas id="jsgb_screen" width="160" height="144"></canvas><br>
+  <a id="jsgb_reset">Reset</a> | <a id="jsgb_run">Run</a><br>
+ </div>
+ <em>Figure 1: jsGB implementation with vertical blanking interrupt</em>
+</div>
+<p>Imagine that you have a computer with a network card, and some software that processes data from the network. From the perspective of the computer, data only comes in every so often, so you need some way for the software to know that new data has arrived. There are two ways for this to happen:</p>
+<ul>
+ <li><strong>Polling</strong>: The software asks the network card every so often whether new data has arrived. This is a simplistic way of doing things, but has disadvantages:
+  <ul>
+   <li>The software doesn't know about new data until its periodic check, which means a delay between the data arriving at the computer and it being handled by the software;</li>
+   <li>Time has to be taken out on a periodic basis for the checks to be made, taking time away from other work even if no data has arrived;</li>
+   <li>If the polling process handles one piece of new data each time it checks, but data is arriving at a faster rate, a backlog of data is created in the network card, and there's potential for some data to be lost;</li>
+   <li>If there is no other work to be done, the software still has to check for data, which keeps the computer running at full speed with no work to do.</li>
+  </ul>
+ </li> 
+ <li><strong>Interrupts</strong>: The network card informs the software that new data has arrived. This is a more complicated way of receiving data, with more steps involved, but it alleviates all the disadvantages of polling:
+  <ul>
+   <li>New data can be processed as soon as it arrives, with no delay between arrival and the data being handled;</li>
+   <li>The software need only take time to handle data when there's definitely data to be handled, and the processing routines can be called as often as necessary to clear any backlogs;</li>
+   <li>If there is no other work to be done, the computer can enter a low-power mode until the network card awakens it for new data.</li>
+  </ul>
+ </li>
+</ul>
+<h3>Interrupts and interrupt handlers</h3>
+<p>It's obvious that the concept of interrupts is a useful one, but there are both hardware and software requirements for interrupts to work. In hardware terms, the CPU has to temporarily stop execution of what it's doing when an interrupt arrives, and instead begin execution of an interrupt handler (sometimes referred to as an Interrupt Service Routine). In the above scenario, a wire is run between the network card and the CPU, allowing the card to inform the CPU when data has arrived.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/jsgb-int-hardware.png" alt="Hardware implementation of interrupts">
+ <em>Figure 2: Hardware implementation of interrupts</em>
+</div>
+<p>The CPU will check its interrupt inputs at the end of every instruction. If an interrupt signal has been given by some attached peripheral like the network card, steps are taken by the CPU to start the interrupt handler: the CPU will save the location where it left off normal execution, register the fact that the interrupt happened, and jump across to the handler.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Interrupts_files/jsgb-int-cpu.png" alt="CPU interrupt handling">
+ <em>Figure 3: CPU interrupt handling procedure</em>
+</div>
+<p>In the GameBoy, there are five different interrupt wires, feeding in from the various peripherals. Each one has its own ISR at a different address in memory; the list of interrupts is as follows.</p>
+<div class="img">
+ <table>
+  <thead><tr><th>Interrupt</th><th>ISR address (hex)</th></tr></thead>
+  <tbody>
+   <tr><td>Vertical blank</td><td><code>0040</code></td></tr>
+   <tr><td>LCD status triggers</td><td><code>0048</code></td></tr>
+   <tr><td>Timer overflow</td><td><code>0050</code></td></tr>
+   <tr><td>Serial link</td><td><code>0058</code></td></tr>
+   <tr><td>Joypad press</td><td><code>0060</code></td></tr>
+  </tbody>
+ </table>
+ <em>Table 1: Interrupts in the GameBoy</em>
+</div>
+<p>In the case of the vertical blank, a wire is threaded into the bottom of the LCD; as soon as the GPU has finished scanning all the LCD lines and runs into the bottom of the screen, the interrupt fires and the CPU jumps to <code>0040</code>, executing the blanking ISR.</p>
+<h3>Implementation: Interrupt flags</h3>
+<p>Most CPUs contain a "master flag" for interrupts: they will only be handled by the CPU if this flag is enabled. The Z80 in the GameBoy is no exception, but there are additional registers that deal with the individual interrupts available in the GameBoy. These are memory registers, so they are handled by the memory management unit:</p>
+<div class="img">
+ <table>
+  <thead><tr><th>Register</th><th>Location</th><th>Notes</th><th>Details</th></tr></thead>
+  <tbody>
+   <tr>
+    <td>Interrupt<br>enable</td>
+    <td><code>FFFF</code></td>
+    <td>When bits are set,<br>the corresponding<br>interrupt can<br>be triggered</td>
+    <td>
+     <table>
+      <thead><tr><th>Bit</th><th>When 0</th><th>When 1</th></tr></thead>
+      <tbody>
+       <tr><td>0</td><td>Vblank off</td><td>Vblank on</td></tr>
+       <tr><td>1</td><td>LCD stat off</td><td>LCD stat on</td></tr>
+       <tr><td>2</td><td>Timer off</td><td>Timer on</td></tr>
+       <tr><td>3</td><td>Serial off</td><td>Serial on</td></tr>
+       <tr><td>4</td><td>Joypad off</td><td>Joypad on</td></tr>
+      </tbody>
+     </table>
+    </td>
+   </tr>
+   <tr>
+    <td>Interrupt<br>flags</td>
+    <td><code>FF0F</code></td>
+    <td>When bits are set,<br>an interrupt<br>has happened</td>
+    <td>Bits in the same<br>order as <code>FFFF</code></td>
+   </tr>
+  </tbody>
+ </table>
+ <em>Table 2: Interrupt flags in the MMU</em>
+</div>
+<p>Since these are memory registers, their implementation is something for the MMU:</p>
+<div class="sample">
+ <h4>MMU.js: Interrupt flags</h4>
+ <div class="inner">MMU = {
+    _ie: <span class="red">0</span>,
+    _if: <span class="red">0</span>,
+
+    rb: <span class="blu">function</span>(addr)
+    {
+	<span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    ...
+	    <span class="blu">case</span> <span class="red">0xF000</span>:
+	        <span class="blu">switch</span>(addr &amp; <span class="red">0x0F00</span>)
+		{
+		    ...
+		    <span class="grn">// Zero-page</span>
+		    <span class="blu">case</span> <span class="red">0xF00</span>:
+		    	<span class="blu">if</span>(addr == <span class="red">0xFFFF</span>)
+			{
+			    <span class="blu">return</span> MMU._ie;
+			}
+		        <span class="blu">else if</span>(addr &gt;= <span class="red">0xFF80</span>)
+			{
+			    <span class="blu">return</span> MMU._zram[addr &amp; <span class="red">0x7F</span>];
+			}
+			<span class="blu">else</span>
+			{
+			    <span class="grn">// I/O control handling</span>
+			    <span class="blu">switch</span>(addr &amp; <span class="red">0x00F0</span>)
+			    {
+			    	<span class="blu">case</span> <span class="red">0x00</span>:
+				    <span class="blu">if</span>(addr == <span class="red">0xFF0F</span>) <span class="blu">return</span> MMU._if;
+				    <span class="blu">break;</span>
+			    	...
+			    }
+			    <span class="blu">return</span> <span class="red">0</span>;
+			}
+		}
+	}
+    },
+    ...
+};</div>
+</div>
+<p>The Z80's "master enable" switch is, in a similar manner, something for the Z80 implementation. The CPU provides opcodes for software to flick the master enable into either On or Off position, so these will also need to be implemented:</p>
+<div class="sample">
+ <h4>Z80.js: Interrupt master enable</h4>
+ <div class="inner">Z80 = {
+    _r: {
+        ime: <span class="red">0</span>,
+        ...
+    },
+
+    reset: <span class="blu">function</span>()
+    {
+        ...
+	Z80._r.ime = <span class="red">1</span>;
+    },
+
+    <span class="grn">// Disable IME</span>
+    DI: <span class="blu">function</span>()
+    {
+    	Z80._r.ime = <span class="red">0</span>;
+	Z80._r.m = <span class="red">1</span>;
+	Z80._r.t = <span class="red">4</span>;
+    },
+
+    <span class="grn">// Enable IME</span>
+    EI: <span class="blu">function</span>()
+    {
+    	Z80._r.ime = <span class="red">1</span>;
+	Z80._r.m = <span class="red">1</span>;
+	Z80._r.t = <span class="red">4</span>;
+    }
+};</div>
+</div>
+<h3>Implementation: Interrupt handling</h3>
+<p>With the interrupt flags in place, the main execution loop can be redeveloped, to fall more in line with the execution path from figure 3. After execution, the interrupt flags need checking to see whether an enabled interrupt has occurred; if it has, its handler can be called.</p>
+<div class="sample">
+ <h4>Z80.js: Vblank interrupt handler</h4>
+ <div class="inner">Z80 = {
+    _ops: {
+	...
+
+        <span class="grn">// Start vblank handler (0040h)</span>
+        RST40: <span class="blu">function</span>()
+        {
+            <span class="grn">// Disable further interrupts</span>
+    	    Z80._r.ime = <span class="red">0</span>;
+    
+    	    <span class="grn">// Save current SP on the stack</span>
+    	    Z80._r.sp -= <span class="red">2</span>;
+    	    MMU.ww(Z80._r.sp, Z80._r.pc);
+    
+    	    <span class="grn">// Jump to handler</span>
+    	    Z80._r.pc = <span class="red">0x0040</span>;
+	    Z80._r.m = <span class="red">3</span>;
+    	    Z80._r.t = <span class="red">12</span>;
+        },
+        
+        <span class="grn">// Return from interrupt (called by handler)</span>
+        RETI: <span class="blu">function</span>()
+        {
+	    <span class="grn">// Restore interrupts</span>
+	    Z80._r.ime = <span class="red">1</span>;
+
+	    <span class="grn">// Jump to the address on the stack</span>
+	    Z80._r.pc = MMU.rw(Z80._r.sp);
+	    Z80._r.sp += <span class="red">2</span>;
+
+	    Z80._r.m = <span class="red">3</span>;
+	    Z80._r.t = <span class="red">12</span>;
+        }
+    }
+};
+
+<span class="blu">while</span>(<span class="red">true</span>)
+{
+    <span class="grn">// Run execute for this instruction</span>
+    <span class="blu">var</span> op = MMU.rc(Z80._r.pc++);
+    Z80._map[op]();
+    Z80._r.pc &amp;= <span class="red">65535</span>;
+    Z80._clock.m += Z80._r.m;
+    Z80._clock.t += Z80._r.t;
+    Z80._r.m = <span class="red">0</span>;
+    Z80._r.t = <span class="red">0</span>;
+
+    <span class="grn">// If IME is on, and some interrupts are enabled in IE, and
+    // an interrupt flag is set, handle the interrupt</span>
+    <span class="blu">if</span>(Z80._r.ime &amp;&amp; MMU._ie &amp;&amp; MMU._if)
+    {
+        <span class="grn">// Mask off ints that aren't enabled</span>
+        <span class="blu">var</span> ifired = MMU._ie &amp; MMU._if;
+
+	<span class="blu">if</span>(ifired &amp; <span class="red">0x01</span>)
+	{
+	    MMU._if &amp;= (<span class="red">255</span> - <span class="red">0x01</span>);
+	    Z80._ops.RST40();
+	}
+    }
+
+    Z80._clock.m += Z80._r.m;
+    Z80._clock.t += Z80._r.t;
+}</div>
+</div>
+<h3>Next time: Bigger games</h3>
+<p>As shown in Figure 1, the emulator has reached a reasonable stage: it's able to emulate a released game in at least some form. It does, however, have the problem of game size. Tetris is a 32kB ROM, and fits perfectly into the "ROM" space in the <a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">memory map</a>. Games tend to have larger ROMs than this, and the cartridge follows a process of mapping portions of the ROM into memory. Next time, I'll look at the simplest available form of ROM mapping for the GameBoy, and its implementation on a 64kB game ROM.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Nov 2010.</em></p>
+<p><em>Article dated: 5th Nov 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

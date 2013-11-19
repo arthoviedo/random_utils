@@ -1,0 +1,366 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0069)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: Memory Banking</title>
+  <meta http-equiv="description" content="Continuing a series on the implementation of a GameBoy emulator, this part looks at how the basic memory map of the GameBoy can be expanded, to accommodate games that are larger than 32kB. The GameBoy uses a system of virtual memory banking to perform this expansion; the concepts of the banking controller are looked at, and an implementation offered.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking_files/jsgb-mbc1.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking_files/jsgb-mbc1.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-mbc1.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-mbc1.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: Memory Banking</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 9 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking_files/Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking.htm">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+ </em>
+<p></p>
+<p>Thus far in this series, we've been dealing with the loading and emulation of a simple <a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">memory map</a> for the GameBoy, with the entirety of the game ROM fitting into the lower half of memory. There aren't many games that fit into memory in full (Tetris is one of the few); most games are larger than this, and have to employ an independent mechanism to swap "banks" of game ROM into the GameBoy CPU's view.</p>
+<p>Some of the first games in the GameBoy library were built with a Memory Bank Controller inside the cartridge, which did this job of swapping banks of ROM into view; over the years, various versions of the cartridge MBC were built for increasingly large games. In the particular example of the demo associated with this part, the first version of the MBC is used to handle the loading of a 64kB ROM.</p>
+<div class="img">
+ <div id="jsgb">
+  <script src="./Imran Nazar  GameBoy Emulation in JavaScript  Memory Banking_files/jsgb-mbc1.jsgb.js"></script><script type="text/vbscript">
+Function BinFileReaderImpl_IE_VBAjaxLoader(fileName)
+	Dim xhr
+	Set xhr = CreateObject("Microsoft.XMLHTTP")
+
+	xhr.Open "GET", fileName, False
+
+	xhr.setRequestHeader "Accept-Charset", "x-user-defined"
+	xhr.send
+
+	Dim byteArray()
+
+	if xhr.Status = 200 Then
+		Dim byteString
+		Dim i
+
+		byteString=xhr.responseBody
+
+		ReDim byteArray(LenB(byteString))
+
+		For i = 1 To LenB(byteString)
+			byteArray(i-1) = AscB(MidB(byteString, i, 1))
+		Next
+	End If
+
+	BinFileReaderImpl_IE_VBAjaxLoader=byteArray
+End Function
+</script>
+  <div id="jsgb_msg">{1384512022947ms} [GPU] Initialising screen.<br>{1384512022963ms} [GPU] Reset.<br>{1384512022963ms} [MMU] Reset.<br>{1384512022963ms} [Z80] Reset.<br>{1384512023883ms} [MMU] ROM loaded, 262144 bytes.<br></div>
+  <canvas id="jsgb_screen" width="160" height="144"></canvas><br>
+  <a id="jsgb_reset">Reset</a> | <a id="jsgb_run">Run</a><br>
+ </div>
+ <em>Figure 1: jsGB implementation with MBC1 support</em>
+</div>
+<h3>Banking and memory expansion</h3>
+<p>Through the years, many computer systems have had to deal with the problem of having too much program to fit into memory. Traditionally, there have been two ways to deal with this problem.</p>
+<ul>
+ <li><strong>Increase the address space</strong>: Build a new CPU with more address lines, allowing it to see and understand a larger amount of memory. This is the preferred solution, but requires significant time to redevelop the computer system in question, and may need more changes to be made in the supporting chipset for the CPU.</li>
+ <li><strong>Virtual memory</strong>: This can either refer to the holding of chunks of RAM on disk, and their swapping in when required; or the swapping in of chunks of pre-written ROM when required. In both cases, the system hardware needs little extension but any software for the system has to be aware of the paging/banking system, in order to use it.</li>
+</ul>
+<p>Since the GameBoy is a fixed hardware platform with wide distribution, there's no way to increase the address space when larger games are produced; instead, the Memory Bank Controller built into the cartridge offers a way to switch 16kB banks of ROM into view. In addition to this, the MBC1 supports up to 32kB of "external RAM", which is writable memory in the cartridge; this can be banked into the <code>[A000-BFFF]</code> space in the memory map, if it's available.</p>
+<p>In order to facilitate software that uses the MBC1, the first 16kB bank of ROM (bank 0) is fixed at address <code>0000</code>; the second half of the ROM space can be made into a window on any ROM bank between 1 and 127, for a maximum ROM size of 2048kB. One of the oddities of the MBC1 is that it deals internally in 32's: banks #32, #64 and #96 are inaccessible, since they're treated within the banking system as bank #0. This means that 125 banks apart from the fixed bank #0 are usable.</p>
+<p>There are four registers within the MBC1 chip, that allow for switching of banks for the ROM and RAM; these can be changed by writing to the (normally read-only) ROM space anywhere within a certain range. The details are given in the below table.</p>
+<div class="img">
+ <table>
+  <thead><tr><th>Locations</th><th>Register</th><th>Details</th></tr></thead>
+  <tbody>
+   <tr><td>0000-1FFF</td><td>Enable external RAM</td><td>4 bits wide; value of<br>0x0A enables RAM,<br>any other value disables</td></tr>
+   <tr><td>2000-3FFF</td><td>ROM bank (low 5 bits)</td><td>Switch between banks 1-31 (value 0 is seen as 1)</td></tr>
+   <tr><td>4000-5FFF</td><td>ROM bank (high 2 bits)<br>RAM bank</td><td>ROM mode: switch ROM bank "set" {1-31}-{97-127}<br>RAM mode: switch RAM bank 0-3</td></tr>
+   <tr><td>6000-7FFF</td><td>Mode</td><td>0: ROM mode (no RAM banks, up to 2MB ROM)<br>1: RAM mode (4 RAM banks, up to 512kB ROM)</td></tr>
+  </tbody>
+ </table>
+ <em>Table 1: MBC1 register set</em>
+</div>
+<h3>MBCs and the cartridge header</h3>
+<p>Since there are multiple kinds of controller for banking, any given game must state which MBC is used, in the cartridge header data. This is the first chunk of data in the cartridge ROM, and follows a specific format.</p>
+<div class="img">
+ <table>
+  <thead><tr><th>Location(s)</th><th>Value</th><th>Size<br>(bytes)</th><th>Details</th></tr></thead>
+  <tbody>
+   <tr><td>0100-0103h</td><td>Entry point</td><td>4</td><td>Where the game starts<br>Usually "NOP; JP 0150h"</td></tr>
+   <tr><td>0104-0133h</td><td>Nintendo logo</td><td>48</td><td>Used by the BIOS to verify checksum</td></tr>
+   <tr><td>0134-0143h</td><td>Title</td><td>16</td><td>Uppercase, padded with 0</td></tr>
+   <tr><td>0144-0145h</td><td>Publisher</td><td>2</td><td>Used by newer GameBoy games</td></tr>
+   <tr><td>0146h</td><td>Super GameBoy flag</td><td>1</td><td>Value of 3 indicates SGB support</td></tr>
+   <tr><td>0147h</td><td>Cartridge type</td><td>1</td><td>MBC type/extras</td></tr>
+   <tr><td>0148h</td><td>ROM size</td><td>1</td><td>Usually between 0 and 7<br>Size = 32kB &lt;&lt; [0148h]</td></tr>
+   <tr><td>0149h</td><td>RAM size</td><td>1</td><td>Size of external RAM</td></tr>
+   <tr><td>014Ah</td><td>Destination</td><td>1</td><td>0 for Japan market, 1 otherwise</td></tr>
+   <tr><td>014Bh</td><td>Publisher</td><td>1</td><td>Used by older GameBoy games</td></tr>
+   <tr><td>014Ch</td><td>ROM version</td><td>1</td><td>Version of the game, usually 0</td></tr>
+   <tr><td>014Dh</td><td>Header checksum</td><td>1</td><td>Checked by BIOS before loading</td></tr>
+   <tr><td>014E-014Fh</td><td>Global checksum</td><td>2</td><td>Simple summation, not checked</td></tr>
+   <tr><td>0150h</td><td colspan="3">Start of game</td></tr>
+  </tbody>
+ </table>
+ <em>Table 2: Cartridge header format</em>
+</div>
+<p>In this particular case, we're interested in the value of <code>0147h</code>, the cartridge type. The cartridge type can be one of the following values, if an MBC1 is fitted to the cartridge:</p>
+<div class="img">
+ <table>
+  <thead><tr><th>Value</th><th>Definition</th></tr></thead>
+  <tbody>
+   <tr><td>00h</td><td>No MBC</td></tr>
+   <tr><td>01h</td><td>MBC1</td></tr>
+   <tr><td>02h</td><td>MBC1 with external RAM</td></tr>
+   <tr><td>03h</td><td>MBC1 with battery-backed external RAM</td></tr>
+  </tbody>
+ </table>
+ <em>Table 3: Cartridge type values pertaining to MBC1</em>
+</div>
+<p>For the purposes of this article, a system of battery backing will not be implemented for the external RAM; this feature is often used by games to save their state for later use, and will be looked at in more detail in a later part.</p>
+<h3>Implementation of MBC1</h3>
+<p>The memory bank controllers are an obvious manipulation of memory, and thus fit neatly into the MMU. Since the first ROM bank (bank #0) is fixed, an offset need only be maintained for the MBC to indicate where it's reading for the second bank. In order to allow for more MBC handling to be added later, an array of data can be used to hold the state of a given controller:</p>
+<div class="sample">
+ <h4>MMU.js: MBC state and reset</h4>
+ <div class="inner">MMU = {
+    <span class="grn">// MBC states</span>
+    _mbc: [],
+
+    <span class="grn">// Offset for second ROM bank</span>
+    _romoffs: <span class="red">0x4000</span>,
+
+    <span class="grn">// Offset for RAM bank</span>
+    _ramoffs: <span class="red">0x0000</span>,
+
+    <span class="grn">// Copy of the ROM's cartridge-type value</span>
+    _carttype: <span class="red">0</span>,
+
+    reset: <span class="blu">function</span>()
+    {
+        ...
+
+	<span class="grn">// In addition to previous reset code,
+	// initialise MBC internal data</span>
+	MMU._mbc[<span class="red">0</span>] = {};
+	MMU._mbc[<span class="red">1</span>] = {
+	    rombank: <span class="red">0</span>,		<span class="grn">// Selected ROM bank</span>
+	    rambank: <span class="red">0</span>,		<span class="grn">// Selected RAM bank</span>
+	    ramon: <span class="red">0</span>,		<span class="grn">// RAM enable switch</span>
+	    mode: <span class="red">0</span>		<span class="grn">// ROM/RAM expansion mode</span>
+	};
+
+	MMU._romoffs = <span class="red">0x4000</span>;
+	MMU._ramoffs = <span class="red">0x0000</span>;
+    },
+
+    load: <span class="blu">function</span>(file)
+    {
+        ...
+	MMU._carttype = MMU._rom.<span class="blu">charCodeAt</span>(<span class="red">0x0147</span>);
+    }
+}</div>
+</div>
+<p>As can be seen in the above code, the internal state of the MBC1's four registers is represented by an object within the MMU, associated with MBC type 1. When these are changed, the ROM and RAM offsets can be modified to point into the appropriate bank of memory; once the pointers are set, access to the memory can proceed almost as normal.</p>
+<div class="sample">
+ <h4>MMU.js: MBC1-based access</h4>
+ <div class="inner">MMU = {
+    rb: <span class="blu">function</span>(addr)
+    {
+    	<span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    ...
+
+	    <span class="grn">// ROM (switched bank)</span>
+	    <span class="blu">case</span> <span class="red">0x4000</span>:
+	    <span class="blu">case</span> <span class="red">0x5000</span>:
+	    <span class="blu">case</span> <span class="red">0x6000</span>:
+	    <span class="blu">case</span> <span class="red">0x7000</span>:
+	        <span class="blu">return</span> MMU._rom.<span class="blu">charCodeAt</span>(MMU._romoffs +
+		                           (addr &amp; <span class="red">0x3FFF</span>));
+
+	    <span class="grn">// External RAM</span>
+	    <span class="blu">case</span> <span class="red">0xA000</span>:
+	    <span class="blu">case</span> <span class="red">0xB000</span>:
+	        <span class="blu">return</span> MMU._eram[MMU._ramoffs +
+		                 (addr &amp; <span class="red">0x1FFF</span>)];
+	}
+    }
+};</div>
+</div>
+<p>The calculation of these pointer offsets is performed when the MBC registers are written, as shown below.</p>
+<div class="sample">
+ <h4>MMU.js: MBC1 control</h4>
+ <div class="inner">    wb: <span class="blu">function</span>(addr, val)
+    {
+        <span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    <span class="grn">// MBC1: External RAM switch</span>
+	    <span class="blu">case</span> <span class="red">0x0000</span>:
+	    <span class="blu">case</span> <span class="red">0x1000</span>:
+	        <span class="blu">switch</span>(MMU._carttype)
+		{
+		    <span class="blu">case</span> <span class="red">2</span>:
+		    <span class="blu">case</span> <span class="red">3</span>:
+			MMU._mbc[<span class="red">1</span>].ramon =
+			    ((val &amp; <span class="red">0x0F</span>) == <span class="red">0x0A</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+			<span class="blu">break</span>;
+		}
+		<span class="blu">break</span>;
+
+	    <span class="grn">// MBC1: ROM bank</span>
+	    <span class="blu">case</span> <span class="red">0x2000</span>:
+	    <span class="blu">case</span> <span class="red">0x3000</span>:
+	        <span class="blu">switch</span>(MMU._carttype)
+		{
+		    <span class="blu">case</span> <span class="red">1</span>:
+		    <span class="blu">case</span> <span class="red">2</span>:
+		    <span class="blu">case</span> <span class="red">3</span>:
+		        <span class="grn">// Set lower 5 bits of ROM bank (skipping #0)</span>
+			val &amp;= <span class="red">0x1F</span>;
+			<span class="blu">if</span>(!val) val = <span class="red">1</span>;
+			MMU._mbc[<span class="red">1</span>].rombank =
+			    (MMU._mbc[<span class="red">1</span>].rombank &amp; <span class="red">0x60</span>) + val;
+
+			<span class="grn">// Calculate ROM offset from bank</span>
+			MMU._romoffs = MMU._mbc[<span class="red">1</span>].rombank * <span class="red">0x4000</span>;
+			<span class="blu">break</span>;
+		}
+		<span class="blu">break</span>;
+
+	    <span class="grn">// MBC1: RAM bank</span>
+	    <span class="blu">case</span> <span class="red">0x4000</span>:
+	    <span class="blu">case</span> <span class="red">0x5000</span>:
+	        <span class="blu">switch</span>(MMU._carttype)
+		{
+		    <span class="blu">case</span> <span class="red">1</span>:
+		    <span class="blu">case</span> <span class="red">2</span>:
+		    <span class="blu">case</span> <span class="red">3</span>:
+		    	<span class="blu">if</span>(MMU._mbc[<span class="red">1</span>].mode)
+			{
+			    <span class="grn">// RAM mode: Set bank</span>
+			    MMU._mbc[<span class="red">1</span>].rambank = val &amp; <span class="red">3</span>;
+			    MMU._ramoffs = MMU._mbc[<span class="red">1</span>].rambank * <span class="red">0x2000</span>;
+			}
+			<span class="blu">else</span>
+			{
+			    <span class="grn">// ROM mode: Set high bits of bank</span>
+			    MMU._mbc[<span class="red">1</span>].rombank =
+			    	(MMU._mbc[<span class="red">1</span>].rombank &amp; <span class="red">0x1F</span>) +
+				((val &amp; <span class="red">3</span>) &lt;&lt; <span class="red">5</span>);
+			
+			    MMU._romoffs = MMU._mbc[<span class="red">1</span>].rombank * <span class="red">0x4000</span>;
+			}
+			<span class="blu">break</span>;
+		}
+		<span class="blu">break</span>;
+
+	    <span class="grn">// MBC1: Mode switch</span>
+	    <span class="blu">case</span> <span class="red">0x6000</span>:
+	    <span class="blu">case</span> <span class="red">0x7000</span>:
+	        <span class="blu">switch</span>(MMU._carttype)
+		{
+		    <span class="blu">case</span> <span class="red">2</span>:
+		    <span class="blu">case</span> <span class="red">3</span>:
+		    	MMU._mbc[<span class="red">1</span>].mode = val &amp; <span class="red">1</span>;
+			<span class="blu">break</span>;
+		}
+		<span class="blu">break</span>;
+
+	    ...
+
+	    <span class="grn">// External RAM</span>
+	    <span class="blu">case</span> <span class="red">0xA000</span>:
+	    <span class="blu">case</span> <span class="red">0xB000</span>:
+	        MMU._eram[MMU._ramoffs + (addr &amp; <span class="red">0x1FFF</span>)] = val;
+		<span class="blu">break</span>;
+	}
+    }</div>
+</div>
+<p>In the above control code, instances of MBC1 that are stated as having external RAM attached are the ones which have RAM banking. With this code in place, the demo shown in Figure 1 loads and runs properly; without the MBC1 handler, the code would crash while attempting to access sprite and background data for the display.</p>
+<h3>Coming up</h3>
+<p>Aside from being able to fit larger games into memory, one of the more important aspects of a game is the ability to keep time: a clock-based game, for example, is useless without some kind of timing mechanism on which to base its clock. As mentioned previously, many games use the vertical blanking interrupt for this timing, but some require a finer-grained time structure; this is provided in the GameBoy by a hardware timer, tied into the CPU clock.</p>
+<p>The timer also provides a method of examining the CPU clock, which makes it useful as a seed for random number generators; Tetris, for example, picks its blocks using this functionality of the hardware timer. In the next part, I'll look at the details of how the timer works, and how it can be implemented.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Dec 2010.</em></p>
+<p><em>Article dated: 3rd Dec 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

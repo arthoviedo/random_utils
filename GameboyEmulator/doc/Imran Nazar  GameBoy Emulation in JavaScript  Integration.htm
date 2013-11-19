@@ -1,0 +1,367 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0066)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: Integration</title>
+  <meta http-equiv="description" content="In the fifth part of the series, the graphics subsystem of the GameBoy emulator is tied to the memory handler, and a rudimentary interface provided for the activation of the emulator. This part includes a working demo of the emulator so far, as will subsequent parts.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Integration_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Integration_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  Integration_files/jsgb-gpu-ctrl.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Integration_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Integration_files/jsgb-gpu-ctrl.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-gpu-ctrl.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-gpu-ctrl.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Integration_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: Integration</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 5 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  Integration_files/Imran Nazar  GameBoy Emulation in JavaScript  Integration.htm">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+ </em>
+<p></p>
+<p>In part 4, the GameBoy's graphics subsystem was explored in detail, and an emulation put together. Without a set of register mappings for the GPU to be dealt with in software, the graphics subsystem cannot be used by the emulator; once these registers have been made available, the emulator is essentially ready for basic use.</p>
+<p>With the additions detailed below to add the GPU registers, and a basic interface for the control of the emulator, the result is as follows.</p>
+<div class="img">
+ <div id="jsgb">
+  <script src="./Imran Nazar  GameBoy Emulation in JavaScript  Integration_files/jsgb-gpu-ctrl.jsgb.js"></script><script type="text/vbscript">
+Function BinFileReaderImpl_IE_VBAjaxLoader(fileName)
+	Dim xhr
+	Set xhr = CreateObject("Microsoft.XMLHTTP")
+
+	xhr.Open "GET", fileName, False
+
+	xhr.setRequestHeader "Accept-Charset", "x-user-defined"
+	xhr.send
+
+	Dim byteArray()
+
+	if xhr.Status = 200 Then
+		Dim byteString
+		Dim i
+
+		byteString=xhr.responseBody
+
+		ReDim byteArray(LenB(byteString))
+
+		For i = 1 To LenB(byteString)
+			byteArray(i-1) = AscB(MidB(byteString, i, 1))
+		Next
+	End If
+
+	BinFileReaderImpl_IE_VBAjaxLoader=byteArray
+End Function
+</script>
+  <div id="jsgb_msg">{1384512020389ms} [GPU] Initialising screen.<br>{1384512020420ms} [GPU] Reset.<br>{1384512020420ms} [MMU] Reset.<br>{1384512020420ms} [Z80] Reset.<br>{1384512020872ms} [MMU] ROM loaded, 32768 bytes.<br></div>
+  <canvas id="jsgb_screen" width="160" height="144"></canvas><br>
+  <a id="jsgb_reset">Reset</a> | <a id="jsgb_run">Run</a><br>
+ </div>
+ <em>Figure 1: jsGB implementation with graphics</em>
+</div>
+<h3>GPU registers</h3>
+<p>The graphics unit of the GameBoy has a series of registers which are mapped into memory, in the I/O space of the <a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">memory map</a>. In order to get a working emulation with a background image, the following registers will be needed by the GPU (other registers are also available to the GPU, and will be explored in later parts of this series).</p>
+<div class="img">
+ <table>
+  <tbody><tr><th>Address</th><th>Register</th><th>Status</th></tr>
+  <tr><td>0xFF40</td><td>LCD and GPU control</td><td>Read/write</td></tr>
+  <tr><td>0xFF42</td><td>Scroll-Y</td><td>Read/write</td></tr>
+  <tr><td>0xFF43</td><td>Scroll-X</td><td>Read/write</td></tr>
+  <tr><td>0xFF44</td><td>Current scan line</td><td>Read only</td></tr>
+  <tr><td>0xFF47</td><td>Background palette</td><td>Write only</td></tr>
+ </tbody></table>
+ <em>Table 1: Basic GPU registers</em>
+</div>
+<p>The background palette register has previously been explored, and consists of four 2-bit palette entries. The scroll registers and scanline counter are full-byte values; this leaves the LCD control register, which is made up of 8 separate flags controlling the sections of the GPU.</p>
+<div class="img">
+ <table>
+  <tbody><tr><th>Bit</th><th>Function</th><th>When 0</th><th>When 1</th></tr>
+  <tr><td>0</td><td>Background: on/off</td><td>Off</td><td>On</td></tr>
+  <tr><td>1</td><td>Sprites: on/off</td><td>Off</td><td>On</td></tr>
+  <tr><td>2</td><td>Sprites: size (pixels)</td><td>8x8</td><td>8x16</td></tr>
+  <tr><td>3</td><td>Background: tile map</td><td>#0</td><td>#1</td></tr>
+  <tr><td>4</td><td>Background: tile set</td><td>#0</td><td>#1</td></tr>
+  <tr><td>5</td><td>Window: on/off</td><td>Off</td><td>On</td></tr>
+  <tr><td>6</td><td>Window: tile map</td><td>#0</td><td>#1</td></tr>
+  <tr><td>7</td><td>Display: on/off</td><td>Off</td><td>On</td></tr>
+ </tbody></table>
+ <em>Table 2: GPU control register</em>
+</div>
+<p>In the above table, the additional features of the GPU appear: a "window" layer which can appear above the background, and sprite objects which can be moved against the background and window. These additional features will be covered as the need for them arises; in the meantime, the background flags are most important for basic rendering functions. In particular, it can be seen here how the background tile map and tile set can be changed, simply by flipping bits in the register <code>0xFF40</code>.</p>
+<h3>Implementation: GPU registers</h3>
+<p>Armed with the conceptual GPU register layout, an emulation can be implemented simply by adding handlers for these addresses to the MMU. This can either be done by hard-coding the GPU updates into the MMU, or defining a range of registers wherein the GPU will be called from the MMU, for more specialised handling to be done from there. In the interests of modularity, the latter approach has been taken here.</p>
+<div class="sample">
+ <h4>MMU.js: Zero-page I/O: GPU</h4>
+ <div class="inner">    rb: <span class="blu">function</span>(addr)
+    {
+	<span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    ...
+	    <span class="blu">case</span> <span class="red">0xF000</span>:
+	        <span class="blu">switch</span>(addr &amp; <span class="red">0x0F00</span>)
+		{
+		    ...
+		    <span class="grn">// Zero-page</span>
+		    <span class="blu">case</span> <span class="red">0xF00</span>:
+		        <span class="blu">if</span>(addr &gt;= <span class="red">0xFF80</span>)
+			{
+			    <span class="blu">return</span> MMU._zram[addr &amp; <span class="red">0x7F</span>];
+			}
+			<span class="blu">else</span>
+			{
+			    <span class="grn">// I/O control handling</span>
+			    <span class="blu">switch</span>(addr &amp; <span class="red">0x00F0</span>)
+			    {
+			        <span class="grn">// GPU (64 registers)</span>
+			        <span class="blu">case</span> <span class="red">0x40</span>: <span class="blu">case</span> <span class="red">0x50</span>: <span class="blu">case</span> <span class="red">0x60</span>: <span class="blu">case</span> <span class="red">0x70</span>:
+				    <span class="blu">return</span> GPU.rb(addr);
+			    }
+			    <span class="blu">return</span> <span class="red">0</span>;
+			}
+		}
+	}
+    },
+
+    wb: <span class="blu">function</span>(addr, val)
+    {
+	<span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    ...
+	    <span class="blu">case</span> <span class="red">0xF000</span>:
+	        <span class="blu">switch</span>(addr &amp; <span class="red">0x0F00</span>)
+		{
+		    ...
+		    <span class="grn">// Zero-page</span>
+		    <span class="blu">case</span> <span class="red">0xF00</span>:
+		        <span class="blu">if</span>(addr &gt;= <span class="red">0xFF80</span>)
+			{
+			    MMU._zram[addr &amp; <span class="red">0x7F</span>] = val;
+			}
+			<span class="blu">else</span>
+			{
+			    <span class="grn">// I/O</span>
+			    <span class="blu">switch</span>(addr &amp; <span class="red">0x00F0</span>)
+			    {
+			        <span class="grn">// GPU</span>
+			        <span class="blu">case</span> <span class="red">0x40</span>: <span class="blu">case</span> <span class="red">0x50</span>: <span class="blu">case</span> <span class="red">0x60</span>: <span class="blu">case</span> <span class="red">0x70</span>:
+				    GPU.wb(addr, val);
+				    <span class="blu">break</span>;
+			    }
+			}
+			<span class="blu">break</span>;
+		}
+		<span class="blu">break</span>;
+	}
+    }</div>
+ <h4>GPU.js: Register handling</h4>
+ <div class="inner">    rb: <span class="blu">function</span>(addr)
+    {
+        <span class="blu">switch</span>(addr)
+	{
+	    <span class="grn">// LCD Control</span>
+	    <span class="blu">case</span> <span class="red">0xFF40</span>:
+	        <span class="blu">return</span> (GPU._switchbg  ? <span class="red">0x01</span> : <span class="red">0x00</span>) |
+		       (GPU._bgmap     ? <span class="red">0x08</span> : <span class="red">0x00</span>) |
+		       (GPU._bgtile    ? <span class="red">0x10</span> : <span class="red">0x00</span>) |
+		       (GPU._switchlcd ? <span class="red">0x80</span> : <span class="red">0x00</span>);
+
+	    <span class="grn">// Scroll Y</span>
+	    <span class="blu">case</span> <span class="red">0xFF42</span>:
+	        <span class="blu">return</span> GPU._scy;
+
+	    <span class="grn">// Scroll X</span>
+	    <span class="blu">case</span> <span class="red">0xFF43</span>:
+	        <span class="blu">return</span> GPU._scx;
+
+	    <span class="grn">// Current scanline</span>
+	    <span class="blu">case</span> <span class="red">0xFF44</span>:
+	        <span class="blu">return</span> GPU._line;
+	}
+    },
+
+    wb: <span class="blu">function</span>(addr, val)
+    {
+        <span class="blu">switch</span>(addr)
+	{
+	    <span class="grn">// LCD Control</span>
+	    <span class="blu">case</span> <span class="red">0xFF40</span>:
+	        GPU._switchbg  = (val &amp; <span class="red">0x01</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		GPU._bgmap     = (val &amp; <span class="red">0x08</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		GPU._bgtile    = (val &amp; <span class="red">0x10</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		GPU._switchlcd = (val &amp; <span class="red">0x80</span>) ? <span class="red">1</span> : <span class="red">0</span>;
+		<span class="blu">break</span>;
+
+	    <span class="grn">// Scroll Y</span>
+	    <span class="blu">case</span> <span class="red">0xFF42</span>:
+	        GPU._scy = val;
+		<span class="blu">break</span>;
+
+	    <span class="grn">// Scroll X</span>
+	    <span class="blu">case</span> <span class="red">0xFF43</span>:
+	        GPU._scx = val;
+		<span class="blu">break</span>;
+
+	    <span class="grn">// Background palette</span>
+	    <span class="blu">case</span> <span class="red">0xFF47</span>:
+	        <span class="blu">for</span>(<span class="blu">var</span> i = <span class="red">0</span>; i &lt; <span class="red">4</span>; i++)
+		{
+		    <span class="blu">switch</span>((val &gt;&gt; (i * <span class="red">2</span>)) &amp; <span class="red">3</span>)
+		    {
+		        <span class="blu">case</span> <span class="red">0</span>: GPU._pal[i] = [<span class="red">255</span>,<span class="red">255</span>,<span class="red">255</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">1</span>: GPU._pal[i] = [<span class="red">192</span>,<span class="red">192</span>,<span class="red">192</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">2</span>: GPU._pal[i] = [ <span class="red">96</span>, <span class="red">96</span>, <span class="red">96</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+			<span class="blu">case</span> <span class="red">3</span>: GPU._pal[i] = [  <span class="red">0</span>,  <span class="red">0</span>,  <span class="red">0</span>,<span class="red">255</span>]; <span class="blu">break</span>;
+		    }
+		}
+		<span class="blu">break</span>;
+	}
+    }</div>
+</div>
+<h3>Running one frame</h3>
+<p>At present, the dispatch loop for the emulator's CPU runs forever, without pause. The most basic interface for an emulator allows for the simulation to be reset or paused; in order to allow for this, a known amount of time must be used as the base unit of the emulator interface. There are three possible units of time that can be used for this:</p>
+<ul>
+ <li><strong>Instruction</strong>: Providing the opportunity to pause after every CPU instruction. This causes a great deal of overhead, since the dispatch function must be called for each step made by the CPU; at 4.19MHz, many steps must be made for an appreciable amount to happen.</li>
+ <li><strong>Scanline</strong>: Pausing after the rendering of each line by the GPU. This produces less of an overhead, but the dispatcher must still be called a few thousand times a second; in addition, the emulation can be paused in a state where the canvas display doesn't correspond to the current scanline.</li>
+ <li><strong>Frame</strong>: Allowing for the emulation to stop after a whole frame is emulated, rendered and pushed to the canvas. This provides the best compromise of timing accuracy and optimal speed, while ensuring that the emulated canvas is consistent with the GPU state.</li>
+</ul>
+<p>Since a frame is made of 144 scanlines and a 10-line vertical blank, and each scanline takes 456 clock cycles to run, the length of a frame is 70224 clocks. In conjunction with an emulator-level reset function, which initialises each subsystem at the start of the emulation, the emulator itself can be run, and a rudimentary interface provided.</p>
+<div class="sample">
+ <h4>index.html: Emulator interface</h4>
+ <div class="inner">&lt;canvas id="screen" width="160" height="144"&gt;&lt;/canvas&gt;
+&lt;a id="reset"&gt;Reset&lt;/a&gt; | &lt;a id="run"&gt;Run&lt;/a&gt;</div>
+ <h4>jsGB.js: Reset and dispatch</h4>
+ <div class="inner">jsGB = {
+    reset: <span class="blu">function</span>()
+    {
+    	GPU.reset();
+	MMU.reset();
+	Z80.reset();
+
+	MMU.load(<span class="red">'test.gb'</span>);
+    },
+
+    frame: <span class="blu">function</span>()
+    {
+        <span class="blu">var</span> fclk = Z80._clock.t + <span class="red">70224</span>;
+	<span class="blu">do</span>
+	{
+	    Z80._map[MMU.rb(Z80._r.pc++)]();
+	    Z80._r.pc &amp;= <span class="red">65535</span>;
+	    Z80._clock.m += Z80._r.m;
+	    Z80._clock.t += Z80._r.t;
+	    GPU.step();
+	} <span class="blu">while</span>(Z80._clock.t &lt; fclk);
+    },
+
+    _interval: <span class="red">null</span>,
+
+    run: <span class="blu">function</span>()
+    {
+        <span class="blu">if</span>(!jsGB._interval)
+	{
+	    jsGB._interval = <span class="blu">setTimeout</span>(jsGB.frame, <span class="red">1</span>);
+	    <span class="blu">document</span>.getElementById(<span class="red">'run'</span>).innerHTML = <span class="red">'Pause'</span>;
+	}
+	<span class="blu">else</span>
+	{
+	    <span class="blu">clearInterval</span>(jsGB._interval);
+	    jsGB._interval = <span class="red">null</span>;
+	    <span class="blu">document</span>.getElementById(<span class="red">'run'</span>).innerHTML = <span class="red">'Run'</span>;
+	}
+    }
+};
+
+<span class="blu">window</span>.onload = <span class="blu">function</span>()
+{
+    <span class="blu">document</span>.getElementById(<span class="red">'reset'</span>).onclick = jsGB.reset;
+    <span class="blu">document</span>.getElementById(<span class="red">'run'</span>).onclick = jsGB.run;
+    jsGB.reset();
+};</div>
+</div>
+<h3>Testing</h3>
+<p>Previously shown in Figure 1 is the result of bringing this code together: the emulator is capable of loading and running a graphics-based demo. In this case, the test ROM being loaded is a scrolling test written by <a href="http://www.opusgames.com/">Doug Lanford</a>: the background displayed will scroll when one of the directional keypad buttons is pressed. In this particular case, with the keypad un-emulated, a static background is displayed.</p>
+<p>In the next part, this piece of the jigsaw will be put in place: a keypad simulation which can provide the appropriate inputs to the emulated program. I'll also be looking at how the keypad works, and how the inputs are mapped into memory.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Sep 2010.</em></p>
+<p><em>Article dated: 5th Sep 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

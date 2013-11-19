@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0063)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: Graphics</title>
+  <meta http-equiv="description" content="The exploration of system emulation in JavaScript continues, with a detailed look at the GameBoy graphics system, and how graphics are rendered by the GameBoy hardware; a simulation of the process is then put in place for use by the wider graphics engine.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/jsgb-gpu-bg.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/jsgb-gpu-bg.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-gpu-bg.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-gpu-bg.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: Graphics</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 4 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/Imran Nazar  GameBoy Emulation in JavaScript  Graphics.htm">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+ </em>
+<p></p>
+<p>Previously in this series, the shape of a GameBoy emulator was brought together, and the timings established between the CPU and graphics processor. A canvas has been initialised and is ready for graphics to be drawn by the emulated GameBoy; the GPU emulation now has structure, but is still unable to render graphics to the framebuffer. In order for the emulation to render graphics, the concepts behind GameBoy graphics must be briefly examined.</p>
+<h3>Backgrounds</h3>
+<p>Just like most consoles of the era, the GameBoy didn't have enough memory to allow for a direct framebuffer to be held in memory. Instead, a tile system is employed: a set of small bitmaps is held in memory, and a map is built using references to these bitmaps. The innate advantage to this system is that one tile can be used repeatedly through the map, simply by using its reference.</p>
+<p>The GameBoy's tiled graphics system operates with tiles of 8x8 pixels, and 256 unique tiles can be used in a map; there are two maps of 32x32 tiles that can be held in memory, and one of them can be used for the display at a time. There is space in the GameBoy memory for 384 tiles, so half of them are shared between the maps: one map uses tile numbers from 0 to 255, and the other uses numbers between -128 and 127 for its tiles.</p>
+<p>In video memory, the layout of the tile data and maps runs as follows.</p>
+<div class="img">
+ <table>
+  <tbody><tr><th>Region</th><th>Usage</th></tr>
+  <tr><td>8000-87FF</td><td>Tile set #1: tiles 0-127</td></tr>
+  <tr><td>8800-8FFF</td><td>Tile set #1: tiles 128-255<br>Tile set #0: tiles -1 to -128</td></tr>
+  <tr><td>9000-97FF</td><td>Tile set #0: tiles 0-127</td></tr>
+  <tr><td>9800-9BFF</td><td>Tile map #0</td></tr>
+  <tr><td>9C00-9FFF</td><td>Tile map #1</td></tr>
+ </tbody></table>
+ <em>Table 1: VRAM layout</em>
+</div>
+<p>When a background is defined, its map and tile data interact to produce the graphical display:</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/jsgb-gpu-bg-map.png" alt="Background map and tile data">
+ <em>Figure 1: Background mapping</em>
+</div>
+<p>The background map is, as previously mentioned, 32x32 tiles; this comes to 256 by 256 pixels. The display of the GameBoy is 160x144 pixels, so there's scope for the background to be moved relative to the screeen. The GPU achieves this by defining a point in the background that corresponds to the top-left of the screen: by moving this point between frames, the background is made to scroll on the screen. For this reason, the definition of the top-left corner is held by two GPU registers: Scroll X and Scroll Y.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/jsgb-gpu-bg-scrl.png" alt="Background scroll registers">
+ <em>Figure 2: Background scroll registers</em>
+</div>
+<h3>Palettes</h3>
+<p>The GameBoy is often described as a monochrome machine, capable of displaying only black and white. This isn't quite true: the GameBoy can also handle light and dark grey, for a total of four colours. Representing one of these four colours in the tile data takes two bits, so each tile in the tile data set is held in (8x8x2) bits, or 16 bytes.</p>
+<p>One additional complication for the GameBoy background is that a palette is intersticed between the tile data and the final display: each of the four possible values for a tile pixel can correspond to any of the four colours. This is used mainly to allow easy colour changes for the tile set; if, for example, a set of tiles is held corresponding to the English alphabet, an inverse-video version can be built by changing the palette, instead of taking up another part of the tile set. The four palette entries are all updated at once, by changing the value of the Background Palette GPU register; the colour references used, and the structure of the register, are shown below.</p>
+<div class="img">
+ <table>
+  <tbody><tr><th>Value</th><th>Pixel</th><th>Emulated colour</th></tr>
+  <tr><td>0</td><td>Off</td><td><code>[255, 255, 255]</code></td></tr>
+  <tr><td>1</td><td>33% on</td><td><code>[192, 192, 192]</code></td></tr>
+  <tr><td>2</td><td>66% on</td><td><code>[96, 96, 96]</code></td></tr>
+  <tr><td>3</td><td>On</td><td><code>[0, 0, 0]</code></td></tr>
+ </tbody></table>
+ <em>Table 2: Colour reference values</em>
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/jsgb-gpu-bg-pal.png" alt="Background palette">
+ <em>Figure 3: Background palette register</em>
+</div>
+<h3>Implementation: tile data</h3>
+<p>As stated above, each pixel in the tile data set is represented by two bits: these bits are read by the GPU when the tile is referenced in the map, run through the palette and pushed to screen. The hardware of the GPU is wired such that one whole row of the tile is accessible at the same time, and the pixels are cycled through by running up the bits. The only issue with this is that one row of the tile is two bytes: from this results the slightly convoluted scheme for storage of the bits, where each pixel's low bit is held in one byte, and the high bit in the other byte.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Graphics_files/jsgb-gpu-bg-tile.png" alt="Tile data bitmap">
+ <em>Figure 4: Tile data bitmap structure</em>
+</div>
+<p>Since JavaScript isn't ideally suited for manipulating bitmap structures quickly, the most time-efficient way of handling the tile data set is to maintain an internal data set alongside the video memory, with a more expanded view where each pixel's value has been pre-calculated. In order for this to accurately reflect the tile data set, any writes to the video RAM must trigger the function to update the GPU's internal tile data.</p>
+<div class="sample">
+ <h4>GPU.js: Internal tile data</h4>
+ <div class="inner">    _tileset: [],
+
+    reset: <span class="blu">function</span>()
+    {
+        <span class="grn">// In addition to previous reset code:</span>
+	GPU._tileset = [];
+	<span class="blu">for</span>(<span class="blu">var</span> i = <span class="red">0</span>; i &lt; <span class="red">384</span>; i++)
+	{
+	    GPU._tileset[i] = [];
+	    <span class="blu">for</span>(<span class="blu">var</span> j = <span class="red">0</span>; j &lt; <span class="red">8</span>; j++)
+	    {
+	        GPU._tileset[i][j] = [<span class="red">0</span>,<span class="red">0</span>,<span class="red">0</span>,<span class="red">0</span>,<span class="red">0</span>,<span class="red">0</span>,<span class="red">0</span>,<span class="red">0</span>];
+	    }
+	}
+    },
+
+    <span class="grn">// Takes a value written to VRAM, and updates the
+    // internal tile data set</span>
+    updatetile: <span class="blu">function</span>(addr, val)
+    {
+        <span class="grn">// Get the "base address" for this tile row</span>
+	addr &amp;= <span class="red">0x1FFE</span>;
+
+	<span class="grn">// Work out which tile and row was updated</span>
+	<span class="blu">var</span> tile = (addr &gt;&gt; <span class="red">4</span>) &amp; <span class="red">511</span>;
+	<span class="blu">var</span> y = (addr &gt;&gt; <span class="red">1</span>) &amp; <span class="red">7</span>;
+
+	<span class="blu">var</span> sx;
+	<span class="blu">for</span>(<span class="blu">var</span> x = <span class="red">0</span>; x &lt; <span class="red">8</span>; x++)
+	{
+	    <span class="grn">// Find bit index for this pixel</span>
+	    sx = <span class="red">1</span> &lt;&lt; (<span class="red">7</span>-x);
+
+	    <span class="grn">// Update tile set</span>
+	    GPU._tileset[tile][y][x] =
+	        ((GPU._vram[addr] &amp; sx)   ? <span class="red">1</span> : <span class="red">0</span>) +
+	        ((GPU._vram[addr+1] &amp; sx) ? <span class="red">2</span> : <span class="red">0</span>);
+	}
+    }</div>
+ <h4>MMU.js: Tile update trigger</h4>
+ <div class="inner">    wb: <span class="blu">function</span>(addr, val)
+    {
+        <span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+            <span class="grn">// Only the VRAM case is shown:</span>
+	    <span class="blu">case</span> <span class="red">0x8000</span>:
+	    <span class="blu">case</span> <span class="red">0x9000</span>:
+		GPU._vram[addr &amp; <span class="red">0x1FFF</span>] = val;
+		GPU.updatetile(addr, val);
+		<span class="blu">break</span>;
+	}
+    }</div>
+</div>
+<h3>Implementation: Scan rendering</h3>
+<p>With these pieces in place, it's possible to begin rendering the GameBoy screen. Since this is being done on a line-by-line basis, the <code>renderscan</code> function referred to in Part 3 must, before it renders a scanline, work out where it is on the screen. This involves calculating the X and Y coordinates of the position in the background map, using the scroll registers and the current scanline counter. Once this has been determined, the scan renderer can advance through each tile in that row of the map, pulling in new tile data as it encounters each tile.</p>
+<div class="sample">
+ <h4>GPU.js: Scan rendering</h4>
+ <div class="inner">    renderscan: <span class="blu">function</span>()
+    {
+	<span class="grn">// VRAM offset for the tile map</span>
+	<span class="blu">var</span> mapoffs = GPU._bgmap ? <span class="red">0x1C00</span> : <span class="red">0x1800</span>;
+
+	<span class="grn">// Which line of tiles to use in the map</span>
+	mapoffs += ((GPU._line + GPU._scy) &amp; <span class="red">255</span>) &gt;&gt; <span class="red">3</span>;
+	
+	<span class="grn">// Which tile to start with in the map line</span>
+	<span class="blu">var</span> lineoffs = (GPU._scx &gt;&gt; <span class="red">3</span>);
+
+	<span class="grn">// Which line of pixels to use in the tiles</span>
+	<span class="blu">var</span> y = (GPU._line + GPU._scy) &amp; <span class="red">7</span>;
+
+	<span class="grn">// Where in the tileline to start</span>
+	<span class="blu">var</span> x = GPU._scx &amp; <span class="red">7</span>;
+
+        <span class="grn">// Where to render on the canvas</span>
+	<span class="blu">var</span> canvasoffs = GPU._line * <span class="red">160</span> * <span class="red">4</span>;
+
+	<span class="grn">// Read tile index from the background map</span>
+	<span class="blu">var</span> colour;
+	<span class="blu">var</span> tile = GPU._vram[mapoffs + lineoffs];
+
+	<span class="grn">// If the tile data set in use is #1, the
+	// indices are signed; calculate a real tile offset</span>
+	<span class="blu">if</span>(GPU._bgtile == <span class="red">1</span> &amp;&amp; tile &lt; <span class="red">128</span>) tile += <span class="red">256</span>;
+
+	<span class="blu">for</span>(<span class="blu">var</span> i = <span class="red">0</span>; i &lt; <span class="red">160</span>; i++)
+	{
+	    <span class="grn">// Re-map the tile pixel through the palette</span>
+	    colour = GPU._pal[GPU._tileset[tile][y][x]];
+
+	    <span class="grn">// Plot the pixel to canvas</span>
+	    GPU._scrn.data[canvasoffs+<span class="red">0</span>] = colour[<span class="red">0</span>];
+	    GPU._scrn.data[canvasoffs+<span class="red">1</span>] = colour[<span class="red">1</span>];
+	    GPU._scrn.data[canvasoffs+<span class="red">2</span>] = colour[<span class="red">2</span>];
+	    GPU._scrn.data[canvasoffs+<span class="red">3</span>] = colour[<span class="red">3</span>];
+	    canvasoffs += <span class="red">4</span>;
+
+	    <span class="grn">// When this tile ends, read another</span>
+	    x++;
+	    <span class="blu">if</span>(x == <span class="red">8</span>)
+	    {
+		x = <span class="red">0</span>;
+		lineoffs = (lineoffs + <span class="red">1</span>) &amp; <span class="red">31</span>;
+		tile = GPU._vram[mapoffs + lineoffs];
+		<span class="blu">if</span>(GPU._bgtile == <span class="red">1</span> &amp;&amp; tile &lt; <span class="red">128</span>) tile += <span class="red">256</span>;
+	    }
+	}
+    }</div>
+</div>
+<h3>Next steps: Output</h3>
+<p>With a CPU, memory handling and a graphics subsystem, the emulator is nearly capable of producing output. In part 5, I'll be looking at what's required to get the system from a disparate set of module files to a coherent whole, capable of loading and running a simple ROM file: tying the graphics registers to the MMU, and a simple interface to control the running of the emulation.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Aug 2010.</em></p>
+<p><em>Article dated: 25th Aug 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

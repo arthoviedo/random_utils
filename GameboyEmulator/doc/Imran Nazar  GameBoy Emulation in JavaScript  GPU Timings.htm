@@ -1,0 +1,259 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0066)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: GPU Timings</title>
+  <meta http-equiv="description" content="In the third part of a series regarding system emulation in JavaScript, the GameBoy as an example of a raster graphics system is looked at, and the timings established for passing of control between CPU and graphics. Also examined is the issue of where the emulated graphics code will be rendering its output, and the HTML5 canvas is introduced as a solution.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings_files/jsgb-gpu-clk.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings_files/jsgb-gpu-clk.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-gpu-clk.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-gpu-clk.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: GPU Timings</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 3 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings_files/Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings.htm">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+  The emulator described in this series is available in source form: <a href="http://github.com/Two9A/jsGB">http://github.com/Two9A/jsGB</a>
+ </em>
+<p></p>
+<p>In the previous parts of this series, a structure for a GameBoy emulator was laid out, and brought to the point where a game ROM could be loaded, and stepped through by the emulated CPU. With the emulated processor attached to a memory mapping structure, it's now possible to attach peripherals to the system. One of the primary peripherals used by the GameBoy, and by any games console, is the graphics processor (GPU): it's the primary method of output for the console, and much of the processor's work goes on generating graphics for the GPU.</p>
+<h3>Emulating the screen</h3>
+<p>Nintendo's internal name for the GameBoy is "Dot Matrix Game"; its display is a pixel LCD of dimensions 160x144. If each pixel in the LCD is treated as a pixel in a HTML5 <code>&lt;canvas&gt;</code>, a direct mapping can be made to a canvas of width 160 and height 144. In order to directly address each pixel in the LCD, the contents of the canvas can be manipulated as a "framebuffer": a single block of memory containing the entirety of the canvas, as a series of 4-byte RGBA values.</p>
+<div class="sample">
+ <h4>index.html: Canvas tag</h4>
+ <div class="inner">&lt;canvas id="screen" width="160" height="144"&gt;&lt;/canvas&gt;</div>
+ <h4>GPU.js: Canvas initialisation</h4>
+ <div class="inner">GPU = {
+    _canvas: {},
+    _scrn: {},
+
+    reset: <span class="blu">function</span>()
+    {
+        <span class="blu">var</span> c = document.getElementById(<span class="red">'screen'</span>);
+	<span class="blu">if</span>(c &amp;&amp; c.getContext)
+	{
+	    GPU._canvas = c.getContext(<span class="red">'2d'</span>);
+	    <span class="blu">if</span>(GPU._canvas)
+	    {
+		<span class="blu">if</span>(GPU._canvas.createImageData)
+		    GPU._scrn = GPU._canvas.createImageData(<span class="red">160</span>, <span class="red">144</span>);
+
+		<span class="blu">else if</span>(GPU._canvas.getImageData)
+		    GPU._scrn = GPU._canvas.getImageData(<span class="red">0</span>,<span class="red">0</span>, <span class="red">160</span>,<span class="red">144</span>);
+
+		<span class="blu">else</span>
+		    GPU._scrn = {
+		        <span class="red">'width'</span>: <span class="red">160</span>,
+			<span class="red">'height'</span>: <span class="red">144</span>,
+			<span class="red">'data'</span>: <span class="blu">new</span> Array(<span class="red">160</span>*<span class="red">144</span>*<span class="red">4</span>)
+		    };
+
+		<span class="grn">// Initialise canvas to white</span>
+		<span class="blu">for</span>(<span class="blu">var</span> i=<span class="red">0</span>; i&lt;<span class="red">160</span>*<span class="red">144</span>*<span class="red">4</span>; i++)
+		    GPU._scrn.data[i] = <span class="red">255</span>;
+
+		GPU._canvas.putImageData(GPU._scrn, <span class="red">0</span>, <span class="red">0</span>);
+	    }
+	}
+    }
+}</div>
+</div>
+<p>Once a block of memory has been allocated for the screen data, an individual pixel's colour can be set by writing RGBA components to the four values at that pixel position in the block; the pixel position can be determined by the formula <code>y * 160 + x</code>.</p>
+<h3>Raster graphics</h3>
+<p>With a canvas in place to receive the graphic output of the GameBoy, the next step is to emulate the production of graphics. The original GameBoy hardware simulates a cathode-ray tube (CRT) in its timings: in a CRT, the screen is scanned in rows by an electron beam, and the scanning process returns to the top of the screen after the end of scanning.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  GPU Timings_files/jsgb-gpu-blank.png" alt="Scanlines and blanking periods">
+ <em>Figure 1: Scanlines and blanking periods</em>
+</div>
+<p>As can be seen above, a CRT requires more time to draw a scanline than simply running over the pixels in question: a "horizontal blanking" period is needed, for the beam to move from the end of one line to the start of the next. Similarly, the end of each frame means a "vertical blanking" period, while the beam travels back to the top-left corner. Since the beam has to move further in vertical blanking, this time period is commonly much longer than the horizontal blanking time.</p>
+<p>In the same way, a GameBoy display exhibits horizontal and vertical blanking periods. In addition, time spent within the scanline itself is separated into two parts: the GPU flips between accessing video memory, and accessing sprite attribute memory, while it draws the scanline. For the purpose of this emulation, these two parts are distinct, and follow each other. The following table states how long the GPU stays in each period, in terms of the CPU's T-clock which runs at 4194304 Hz.</p>
+<div class="img">
+ <table>
+  <tbody><tr><th>Period</th><th>GPU mode number</th><th>Time spent (clocks)</th></tr>
+  <tr><td>Scanline (accessing OAM)</td><td>2</td><td>80</td></tr>
+  <tr><td>Scanline (accessing VRAM)</td><td>3</td><td>172</td></tr>
+  <tr><td>Horizontal blank</td><td>0</td><td>204</td></tr>
+  <tr><td>One line (scan and blank)</td><td></td><td>456</td></tr>
+  <tr><td>Vertical blank</td><td>1</td><td>4560 (10 lines)</td></tr>
+  <tr><td>Full frame (scans and vblank)</td><td></td><td>70224</td></tr>
+ </tbody></table>
+ <em>Table 1: GPU frame timings</em>
+</div>
+<p>In order to maintain these timings relative to the emulated CPU, a timing update function must exist, which gets called after the execution of every instruction. This can be done from an expanded version of the CPU dispatch process, covered in part 1.</p>
+<div class="sample">
+ <h4>Z80.js: Dispatcher</h4>
+ <div class="inner"><span class="blu">while</span>(<span class="red">true</span>)
+{
+    Z80._map[MMU.rb(Z80._r.pc++)]();
+    Z80._r.pc &amp;= <span class="red">65535</span>;
+    Z80._clock.m += Z80._r.m;
+    Z80._clock.t += Z80._r.t;
+
+    GPU.step();
+}</div>
+ <h4>GPU.js: Clock step</h4>
+ <div class="inner">    _mode: <span class="red">0</span>,
+    _modeclock: <span class="red">0</span>,
+    _line: <span class="red">0</span>,
+
+    step: <span class="blu">function</span>()
+    {
+        GPU._modeclock += Z80._r.t;
+
+	<span class="blu">switch</span>(GPU._mode)
+	{
+	    <span class="grn">// OAM read mode, scanline active</span>
+	    <span class="blu">case</span> <span class="red">2</span>:
+	        <span class="blu">if</span>(GPU._modeclock &gt;= <span class="red">80</span>)
+		{
+		    <span class="grn">// Enter scanline mode 3</span>
+		    GPU._modeclock = <span class="red">0</span>;
+		    GPU._mode = <span class="red">3</span>;
+		}
+		<span class="blu">break</span>;
+
+	    <span class="grn">// VRAM read mode, scanline active
+	    // Treat end of mode 3 as end of scanline</span>
+	    <span class="blu">case</span> <span class="red">3</span>:
+	        <span class="blu">if</span>(GPU._modeclock &gt;= <span class="red">172</span>)
+		{
+		    <span class="grn">// Enter hblank</span>
+		    GPU._modeclock = <span class="red">0</span>;
+		    GPU._mode = <span class="red">0</span>;
+
+		    <span class="grn">// Write a scanline to the framebuffer</span>
+		    GPU.renderscan();
+		}
+		<span class="blu">break</span>;
+
+	    <span class="grn">// Hblank
+	    // After the last hblank, push the screen data to canvas</span>
+	    <span class="blu">case</span> <span class="red">0</span>:
+	        <span class="blu">if</span>(GPU._modeclock &gt;= <span class="red">204</span>)
+		{
+		    GPU._modeclock = <span class="red">0</span>;
+		    GPU._line++;
+
+		    <span class="blu">if</span>(GPU._line == <span class="red">143</span>)
+		    {
+		        <span class="grn">// Enter vblank</span>
+			GPU._mode = <span class="red">1</span>;
+			GPU._canvas.putImageData(GPU._scrn, <span class="red">0</span>, <span class="red">0</span>);
+		    }
+		    <span class="blu">else</span>
+		    {
+		    	GPU._mode = <span class="red">2</span>;
+		    }
+		}
+		<span class="blu">break</span>;
+
+	    <span class="grn">// Vblank (10 lines)</span>
+	    <span class="blu">case</span> <span class="red">1</span>:
+	        <span class="blu">if</span>(GPU._modeclock &gt;= <span class="red">456</span>)
+		{
+		    GPU._modeclock = <span class="red">0</span>;
+		    GPU._line++;
+
+		    <span class="blu">if</span>(GPU._line &gt; <span class="red">153</span>)
+		    {
+		        <span class="grn">// Restart scanning modes</span>
+			GPU._mode = <span class="red">2</span>;
+			GPU._line = <span class="red">0</span>;
+		    }
+		}
+		<span class="blu">break</span>;
+	}
+    }</div>
+</div>
+<h3>Next time: backgrounds and palettes</h3>
+<p>In the above code, the timings for the GPU are established, but the work of the GPU isn't yet in place: <code>renderscan</code> is where the work happens. In the next part of this series, the concepts behind the GameBoy's background graphics system will be looked at, and code will be put inside the rendering function to emulate them.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Aug 2010.</em></p>
+<p><em>Article dated: 14th Aug 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0060)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: Input</title>
+  <meta http-equiv="description" content="Part six of the series examines the issue of how a player interacts with the GameBoy, taking a look at the hardware layout of the keypad, and how the layout can be implemented as part of an emulator. The particular issues thrown up by a JavaScript emulation are looked at, including basic event handling and how events can be passed to the keypad handler.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/jsgb-key.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/jsgb-key.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-key.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-key.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: Input</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 6 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/Imran Nazar  GameBoy Emulation in JavaScript  Input.htm">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+ </em>
+<p></p>
+<p>With a working emulator and interface developed over the previous five parts, the emulation system is able to run a basic test ROM, and produce graphical output. What the emulator is currently unable to do is take keypresses as keypad input, and feed them through to the ROM under test; in order for this to be done, the keypad's influence on the I/O registers must be emulated.</p>
+<p>With the addition of keypad I/O, the emulator runs as follows.</p>
+<div class="img">
+ <div id="jsgb">
+  <script src="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/jsgb-key.jsgb.js"></script><script type="text/vbscript">
+Function BinFileReaderImpl_IE_VBAjaxLoader(fileName)
+	Dim xhr
+	Set xhr = CreateObject("Microsoft.XMLHTTP")
+
+	xhr.Open "GET", fileName, False
+
+	xhr.setRequestHeader "Accept-Charset", "x-user-defined"
+	xhr.send
+
+	Dim byteArray()
+
+	if xhr.Status = 200 Then
+		Dim byteString
+		Dim i
+
+		byteString=xhr.responseBody
+
+		ReDim byteArray(LenB(byteString))
+
+		For i = 1 To LenB(byteString)
+			byteArray(i-1) = AscB(MidB(byteString, i, 1))
+		Next
+	End If
+
+	BinFileReaderImpl_IE_VBAjaxLoader=byteArray
+End Function
+</script>
+  <div id="jsgb_msg">{1384512021080ms} [GPU] Initialising screen.<br>{1384512021080ms} [GPU] Reset.<br>{1384512021096ms} [MMU] Reset.<br>{1384512021096ms} [Z80] Reset.<br>{1384512021096ms} [KEY] Reset.<br>{1384512021548ms} [MMU] ROM loaded, 32768 bytes.<br></div>
+  <canvas id="jsgb_screen" width="160" height="144"></canvas><br>
+  <a id="jsgb_reset">Reset</a> | <a id="jsgb_run">Run</a><br>
+ </div>
+ <em>Figure 1: jsGB implementation with key input</em>
+</div>
+<h3>The keypad</h3>
+<p>The GameBoy has a single method of input, an eight-key pad out of which any number of keys can be depressed. With most keyboards, the keys are laid out in a grid of columns and rows: these can be treated as wires, between which a key can form a connection. When one of the columns is activated, any rows connected to that column will also activate, and the hardware is able to detect the active rows to determine the currently pressed keys.</p>
+<p>With the GameBoy, the keyboard grid has two columns and four rows, which has the advantage that all the required connections can be made within one 8-bit I/O register.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Input_files/jsgb-key-wires.png" alt="Keyboard wiring">
+ <em>Figure 2: Keyboard wiring</em>
+</div>
+<p>Since all six lines are tied to the same register, the GameBoy procedure for reading a key is slightly convoluted:</p>
+<ul>
+ <li>Write either 0x10 or 0x20 to JOYP: this will activate either bit 4 or 5, one of the column lines;</li>
+ <li>Wait a few cycles for the row connections to propagate to JOYP;</li>
+ <li>Check the low four bits of JOYP, to find which rows were active for this column.</li>
+</ul>
+<h3>Implementation of the keypad</h3>
+<p>Writing code to simulate keypad presses is relatively simple, but two factors complicate the issue: allowing for a column to be set in the grid before rows are read, and the keypress codes that are used by JavaScript. In order to accommodate the two columns, two values must be used by the emulation, each of which holds the intersections between that column and the rows. One additional factor to take into account is that the values are reversed for the keypad: a row is left at high voltage by default, and is dropped to zero voltage when it intersects a column. This is interpreted by the I/O register as the row bits being 1 for no key pressed, and 0 for a keypress.</p>
+<p>The JavaScript <code>keydown</code> and <code>keyup</code> events can be used to find out when a key has been pressed or released; tying these into the keypad handler can be done in the following manner.</p>
+<div class="sample">
+ <h4>Key.js: Object interface</h4>
+ <div class="inner">KEY = {
+    _rows: [<span class="red">0x0F</span>, <span class="red">0x0F</span>],
+    _column: <span class="red">0</span>,
+
+    reset: <span class="blu">function</span>()
+    {
+        KEY._rows = [<span class="red">0x0F</span>, <span class="red">0x0F</span>];
+	KEY._column = <span class="red">0</span>;
+    },
+
+    rb: <span class="blu">function</span>(addr)
+    {
+        <span class="blu">switch</span>(KEY._column)
+	{
+	    <span class="blu">case</span> <span class="red">0x10</span>: <span class="blu">return</span> KEY._rows[<span class="red">0</span>];
+	    <span class="blu">case</span> <span class="red">0x20</span>: <span class="blu">return</span> KEY._rows[<span class="red">1</span>];
+	    <span class="blu">default</span>: <span class="blu">return</span> <span class="red">0</span>;
+	}
+    },
+
+    wb: <span class="blu">function</span>(addr, val)
+    {
+        KEY._column = val &amp; <span class="red">0x30</span>;
+    },
+
+    kdown: <span class="blu">function</span>(e)
+    {
+        <span class="grn">// Reset the appropriate bit</span>
+    },
+
+    kup: <span class="blu">function</span>(e)
+    {
+        <span class="grn">// Set the appropriate bit</span>
+    }
+};
+
+<span class="blu">window</span>.onkeydown = KEY.kdown;
+<span class="blu">window</span>.onkeyup = KEY.kup;</div>
+</div>
+<p>In addition to this, the MMU must be extended to handle the keypad I/O register, with an addition to the zero-page handling routines; an example of this is given below.</p>
+<div class="sample">
+ <h4>MMU.js: Keypad I/O interface</h4>
+ <div class="inner">    rb: <span class="blu">function</span>(addr)
+    {
+	<span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    ...
+	    <span class="blu">case</span> <span class="red">0xF000</span>:
+	        <span class="blu">switch</span>(addr &amp; <span class="red">0x0F00</span>)
+		{
+		    ...
+		    <span class="grn">// Zero-page</span>
+		    <span class="blu">case</span> <span class="red">0xF00</span>:
+		        <span class="blu">if</span>(addr &gt;= <span class="red">0xFF80</span>)
+			{
+			    <span class="blu">return</span> MMU._zram[addr &amp; <span class="red">0x7F</span>];
+			}
+			<span class="blu">else if</span>(addr &gt;= <span class="red">0xFF40</span>)
+			{
+			    <span class="grn">// GPU (64 registers)</span>
+			    <span class="blu">return</span> GPU.rb(addr);
+			}
+			<span class="blu">else switch</span>(addr &amp; <span class="red">0x3F</span>)
+			{
+			    <span class="blu">case</span> <span class="red">0x00</span>: <span class="blu">return</span> KEY.rb();
+			    <span class="blu">default</span>: <span class="blu">return</span> <span class="red">0</span>;
+			}
+		}
+	}
+    }</div>
+</div>
+<p>With the keypad handler plumbed in, the remaining issue is the handling of keypresses, and the ability of the keypad code to distinguish between different keys being pressed. This can be done through the JavaScript <code>event</code> object; any event that runs through the browser, such as a mouse click or a keypress, will be passed to the code if it's requested, along with an object that describes the event that's just occurred. In the case of a keypress, the <code>event</code> object contains a character code and a "key scan" code, which both describe the key in question.</p>
+<p>Through testing by <a href="http://www.quirksmode.org/js/keys.html">Peter-Paul Koch</a>, it has been determined that the character code passed by browsers to JavaScript code is unreliable, and will change depending on which browser is used. The only case on which all browsers agree is the key-scan code produced for <code>keyup</code> and <code>keydown</code> events; in any browser, pressing a given key will yield a particular value.</p>
+<p>For the purposes of this emulator, eight keys need to be handled by the keypad code:</p>
+<div class="img">
+ <table>
+  <tbody><tr><th>Scan code</th><th>Key</th><th>Mapping</th></tr>
+  <tr><td>13</td><td>Enter</td><td>Start</td></tr>
+  <tr><td>32</td><td>Space</td><td>Select</td></tr>
+  <tr><td>37</td><td>Left arrow</td><td>Left</td></tr>
+  <tr><td>38</td><td>Up arrow</td><td>Up</td></tr>
+  <tr><td>39</td><td>Right arrow</td><td>Right</td></tr>
+  <tr><td>40</td><td>Down arrow</td><td>Down</td></tr>
+  <tr><td>88</td><td>X</td><td>B</td></tr>
+  <tr><td>90</td><td>Z</td><td>A</td></tr>
+ </tbody></table>
+ <em>Table 1: Key-scan codes used by jsGB</em>
+</div>
+<p>As stated above, the appropriate bits must be reset when a key is pressed, and set when the key is released. This can be implemented as follows.</p>
+<div class="sample">
+ <h4>Key.js: Keypress handling</h4>
+ <div class="inner">    kdown: <span class="blu">function</span>(e)
+    {
+    	<span class="blu">switch</span>(e.keyCode)
+	{
+            <span class="blu">case</span> <span class="red">39</span>: KEY._keys[<span class="red">1</span>] &amp;= <span class="red">0xE</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">37</span>: KEY._keys[<span class="red">1</span>] &amp;= <span class="red">0xD</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">38</span>: KEY._keys[<span class="red">1</span>] &amp;= <span class="red">0xB</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">40</span>: KEY._keys[<span class="red">1</span>] &amp;= <span class="red">0x7</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">90</span>: KEY._keys[<span class="red">0</span>] &amp;= <span class="red">0xE</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">88</span>: KEY._keys[<span class="red">0</span>] &amp;= <span class="red">0xD</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">32</span>: KEY._keys[<span class="red">0</span>] &amp;= <span class="red">0xB</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">13</span>: KEY._keys[<span class="red">0</span>] &amp;= <span class="red">0x7</span>; <span class="blu">break</span>;
+	}
+    },
+
+    kup: <span class="blu">function</span>(e)
+    {
+    	<span class="blu">switch</span>(e.keyCode)
+	{
+            <span class="blu">case</span> <span class="red">39</span>: KEY._keys[<span class="red">1</span>] |= <span class="red">0x1</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">37</span>: KEY._keys[<span class="red">1</span>] |= <span class="red">0x2</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">38</span>: KEY._keys[<span class="red">1</span>] |= <span class="red">0x4</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">40</span>: KEY._keys[<span class="red">1</span>] |= <span class="red">0x8</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">90</span>: KEY._keys[<span class="red">0</span>] |= <span class="red">0x1</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">88</span>: KEY._keys[<span class="red">0</span>] |= <span class="red">0x2</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">32</span>: KEY._keys[<span class="red">0</span>] |= <span class="red">0x4</span>; <span class="blu">break</span>;
+            <span class="blu">case</span> <span class="red">13</span>: KEY._keys[<span class="red">0</span>] |= <span class="red">0x8</span>; <span class="blu">break</span>;
+	}
+    }</div>
+</div>
+<h3>Testing and next steps</h3>
+<p>Figure 1 above shows the result of these additions to the emulator, when running a basic tic-tac-toe game. In this example, the initial screen can be advanced to the credits by pressing the Start key, which is mapped to Enter by this emulator. Another press of the Start key will bring up the game screen, and the game can be played with the player as one side, and the computer as the other; pressing the GameBoy's A key (mapped to Z) will place a cross or circle on behalf of the player.</p>
+<p>Right now, the game must be played blind, since there is no indicator of where the player places a mark. The game produces this indicator by using a sprite: a tile which can be placed by the graphics chip above the background, and moved independently. Most games produce their gameplay through use of sprites, so building them into the simulation is an important next step for this series. Next time, I'll be taking a look at the facilities provided by the GameBoy for the rendering of sprites, and how they can be implemented in JavaScript.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Sep 2010.</em></p>
+<p><em>Article dated: 19th Sep 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

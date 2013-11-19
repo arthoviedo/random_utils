@@ -1,0 +1,348 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0061)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: Timers</title>
+  <meta http-equiv="description" content="Like most computer and console systems, the GameBoy offers a hardware timer for use by games, if they wish to keep time more accurately than at the rate of vertical blanking refresh. In addition to a controllable timer, the GameBoy provides a facility for directly examining a fixed divisor of the system clock; in this article, both aspects of the timer are investigated, and the use of the timer for generating random numbers is also looked at, using the example of Tetris.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Timers_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Timers_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  Timers_files/jsgb-timer.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Timers_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Timers_files/jsgb-timer.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-timer.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-timer.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Timers_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: Timers</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 10 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  Timers_files/Imran Nazar  GameBoy Emulation in JavaScript  Timers.htm">Part 10: Timers</a></li>
+  </em></ul><em>
+ </em>
+<p></p>
+<p>Since the first computers were put together, one of their basic functions has been to keep time: to coordinate actions according to timers. Even the simplest of games has an element of time to it: Pong, for example, needs to move the ball across the screen at a particular rate. In order to handle these timing issues, every games console has some form of timer to allow for things to happen at a given moment, or at a specific rate.</p>
+<p>The GameBoy is no exception to this rule, and contains a set of registers which automatically increment based on a programmable schedule. In this part of the series, I'll be investigating the structure and operation of the timer, and how it can be used to seed pseudo-random number generators, such as the one contained in Tetris and its various clones. One example of a Tetris clone which uses the timer, to pick random pieces for the game, is demonstrated below.</p>
+<div class="img">
+ <div id="jsgb">
+  <script src="./Imran Nazar  GameBoy Emulation in JavaScript  Timers_files/jsgb-timer.jsgb.js"></script><script type="text/vbscript">
+Function BinFileReaderImpl_IE_VBAjaxLoader(fileName)
+	Dim xhr
+	Set xhr = CreateObject("Microsoft.XMLHTTP")
+
+	xhr.Open "GET", fileName, False
+
+	xhr.setRequestHeader "Accept-Charset", "x-user-defined"
+	xhr.send
+
+	Dim byteArray()
+
+	if xhr.Status = 200 Then
+		Dim byteString
+		Dim i
+
+		byteString=xhr.responseBody
+
+		ReDim byteArray(LenB(byteString))
+
+		For i = 1 To LenB(byteString)
+			byteArray(i-1) = AscB(MidB(byteString, i, 1))
+		Next
+	End If
+
+	BinFileReaderImpl_IE_VBAjaxLoader=byteArray
+End Function
+</script>
+  <div id="jsgb_msg">{1384512026740ms} [GPU] Initialising screen.<br>{1384512026740ms} [GPU] Reset.<br>{1384512026755ms} [MMU] Reset.<br>{1384512026755ms} [Z80] Reset.<br>{1384512027021ms} [MMU] ROM loaded, 32768 bytes.<br></div>
+  <canvas id="jsgb_screen" width="160" height="144"></canvas><br>
+  <a id="jsgb_reset">Reset</a> | <a id="jsgb_run">Run</a><br>
+ </div>
+ <em>Figure 1: jsGB implementation with timer</em>
+</div>
+<h3>Timer structure</h3>
+<p>The GameBoy's CPU, as described in the <a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">first part</a> of this series, runs on a 4,194,304Hz clock, with two internal measures of the time taken to execute each instruction: the T-clock, which increments with each clock step, and the M-clock, which increments at a quarter of the speed (1,048,576Hz). These clocks are used as the source of the timer, which counts up, in turn, at a quarter of the rate of the M-clock: 262,144Hz. In this article, I'll refer to this final value as the timer's "base speed".</p>
+<p>The GameBoy's timer hardware offers two separate timer registers: the system works by incrementing the value in each of these registers at a pre-determined rate. The "divider" timer is permanently set to increment at 16384Hz, one sixteenth of the base speed; since it's only an eight-bit register, its value will go back to zero after it reaches 255. The "counter" timer is more programmable: it can be set to one of four speeds (the base divided by 1, 4, 16 or 64), and it can be set to go back to a value that isn't zero when it overflows past 255. In addition, the timer hardware will send an interrupt to the CPU, as described in <a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">part 8</a>, whenever the "counter" timer does overflow.</p>
+<p>There are four registers used by the timer; these are made available for use by the system as part of the I/O page, just like the graphics and interrupt registers:</p>
+<div class="img">
+ <table>
+  <tbody><tr><th>Address</th><th>Register</th><th>Details</th></tr>
+  <tr><td>0xFF04</td><td>Divider</td><td>Counts up at a fixed 16384Hz;<br>reset to 0 whenever written to</td></tr>
+  <tr><td>0xFF05</td><td>Counter</td><td>Counts up at the specified rate<br>Triggers INT 0x50 when going 255-&gt;0</td></tr>
+  <tr><td>0xFF06</td><td>Modulo</td><td>When Counter overflows to 0,<br>it's reset to start at Modulo</td></tr><tr>
+  </tr><tr><td>0xFF07</td><td>Control</td><td>
+   <table>
+    <tbody><tr><th>Bits</th><th>Function</th><th>Details</th></tr>
+    <tr><td>0-1</td><td>Speed</td><td>00:   4096Hz<br>01: 262144Hz<br>10:  65536Hz<br>11:  16384Hz</td></tr>
+    <tr><td>2</td><td>Running</td><td>1 to run timer, 0 to stop</td></tr>
+    <tr><td>3-7</td><td colspan="2">Unused</td></tr>
+   </tbody></table>
+  </td></tr>
+ </tbody></table>
+ <em>Table 1: Timer registers</em>
+</div>
+<p>Since the "counter" timer triggers an interrupt when it overflows, it can be especially useful if a game requires something to happen at a regular interval. However, a Gameboy game can generally use the <a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">vertical blank</a> to much the same effect, since it occurs at a regular pace of almost 60Hz; the vertical blanking handler can be used not only to refresh the screen contents, but to check the keypad and update the game state. Therefore, there's little call for use of the timer in traditional Gameboy games, though it can be used to greater effect in graphic demos.</p>
+<h3>Implementing the timer emulation</h3>
+<p>The emulation developed in this article series uses the CPU's clock as the basic unit of time. For that reason, it's simplest to maintain a clock for the timer that runs in step with the CPU clock, and is updated by the dispatch function. It's convenient at this stage to keep the DIV register as a separate entity to the controllable timer, incremented at 1/16th the rate again of the fastest timer step:</p>
+<div class="sample">
+ <h4>Timer.js: Clock increment</h4>
+ <div class="inner">TIMER = {
+    _clock: {
+        main: <span class="red">0</span>,
+	sub:  <span class="red">0</span>,
+	div:  <span class="red">0</span>
+    },
+
+    _reg: {
+        div:  <span class="red">0</span>,
+	tima: <span class="red">0</span>,
+	tma:  <span class="red">0</span>,
+	tac:  <span class="red">0</span>
+    },
+
+    inc: <span class="blu">function</span>()
+    {
+        <span class="grn">// Increment by the last opcode's time</span>
+        TIMER._clock.sub += Z80._r.m;
+
+	<span class="grn">// No opcode takes longer than 4 M-times,
+	// so we need only check for overflow once</span>
+	<span class="blu">if</span>(TIMER._clock.sub &gt;= <span class="red">4</span>)
+	{
+	    TIMER._clock.main++;
+	    TIMER._clock.sub -= <span class="red">4</span>;
+
+	    <span class="grn">// The DIV register increments at 1/16th
+	    // the rate, so keep a count of this</span>
+	    TIMER._clock.div++;
+	    <span class="blu">if</span>(TIMER._clock.div == <span class="red">16</span>)
+	    {
+	        TIMER._reg.div = (TIMER._reg.div+<span class="red">1</span>) &amp; <span class="red">255</span>;
+		TIMER._clock.div = <span class="red">0</span>;
+	    }
+	}
+
+	<span class="grn">// Check whether a step needs to be made in the timer</span>
+	TIMER.check();
+    }
+};</div>
+ <h4>Z80.js: Dispatcher</h4>
+ <div class="inner"><span class="blu">while</span>(<span class="red">true</span>)
+{
+    <span class="grn">// Run execute for this instruction</span>
+    <span class="blu">var</span> op = MMU.rc(Z80._r.pc++);
+    Z80._map[op]();
+    Z80._r.pc &amp;= <span class="red">65535</span>;
+    Z80._clock.m += Z80._r.m;
+    Z80._clock.t += Z80._r.t;
+
+    <span class="grn">// Update the timer</span>
+    TIMER.inc();
+
+    Z80._r.m = <span class="red">0</span>;
+    Z80._r.t = <span class="red">0</span>;
+
+    <span class="grn">// If IME is on, and some interrupts are enabled in IE, and
+    // an interrupt flag is set, handle the interrupt</span>
+    <span class="blu">if</span>(Z80._r.ime &amp;&amp; MMU._ie &amp;&amp; MMU._if)
+    {
+        <span class="grn">// Mask off ints that aren't enabled</span>
+        <span class="blu">var</span> ifired = MMU._ie &amp; MMU._if;
+
+	<span class="blu">if</span>(ifired &amp; <span class="red">0x01</span>)
+	{
+	    MMU._if &amp;= (<span class="red">255</span> - <span class="red">0x01</span>);
+	    Z80._ops.RST40();
+	}
+    }
+
+    Z80._clock.m += Z80._r.m;
+    Z80._clock.t += Z80._r.t;
+
+    <span class="grn">// Update timer again, in case a RST occurred</span>
+    TIMER.inc();
+}</div>
+</div>
+<p>From here, the controllable timer is made up of varying divisions of the base speed, making it relatively simple to check whether the timer values need to be stepped up, and to provide the registers as part of the memory I/O page. The interface between the following section of code and the MMU I/O page handler, is left as an exercise for the reader.</p>
+<div class="sample">
+ <h4>Timer.js: Register check and update</h4>
+ <div class="inner">    check: <span class="blu">function</span>()
+    {
+        <span class="blu">if</span>(TIMER._reg.tac &amp; <span class="red">4</span>)
+	{
+	    <span class="blu">switch</span>(TIMER._reg.tac &amp; <span class="red">3</span>)
+	    {
+	        <span class="blu">case</span> <span class="red">0</span>: threshold = <span class="red">64</span>; <span class="blu">break</span>;		<span class="grn">// 4K</span>
+		<span class="blu">case</span> <span class="red">1</span>: threshold = <span class="red"> 1</span>; <span class="blu">break</span>;		<span class="grn">// 256K</span>
+		<span class="blu">case</span> <span class="red">2</span>: threshold = <span class="red"> 4</span>; <span class="blu">break</span>;		<span class="grn">// 64K</span>
+		<span class="blu">case</span> <span class="red">3</span>: threshold = <span class="red">16</span>; <span class="blu">break</span>;		<span class="grn">// 16K</span>
+	    }
+
+	    <span class="blu">if</span>(TIMER._clock.main &gt;= threshold) TIMER.step();
+	}
+    },
+
+    step: <span class="blu">function</span>()
+    {
+        <span class="grn">// Step the timer up by one</span>
+	TIMER._clock.main = <span class="red">0</span>;
+    	TIMER._reg.tima++;
+
+	<span class="blu">if</span>(TIMER._reg.tima &gt; <span class="red">255</span>)
+	{
+	    <span class="grn">// At overflow, refill with the Modulo</span>
+	    TIMER._reg.tima = TIMER._reg.tma;
+
+	    <span class="grn">// Flag a timer interrupt to the dispatcher</span>
+	    MMU._if |= <span class="red">4</span>;
+	}
+    },
+
+    rb: <span class="blu">function</span>(addr)
+    {
+	<span class="blu">switch</span>(addr)
+	{
+	    <span class="blu">case</span> <span class="red">0xFF04</span>: <span class="blu">return</span> TIMER._reg.div;
+	    <span class="blu">case</span> <span class="red">0xFF05</span>: <span class="blu">return</span> TIMER._reg.tima;
+	    <span class="blu">case</span> <span class="red">0xFF06</span>: <span class="blu">return</span> TIMER._reg.tma;
+	    <span class="blu">case</span> <span class="red">0xFF07</span>: <span class="blu">return</span> TIMER._reg.tac;
+	}
+    },
+
+    wb: <span class="blu">function</span>(addr, val)
+    {
+	<span class="blu">switch</span>(addr)
+	{
+	    <span class="blu">case</span> <span class="red">0xFF04</span>: TIMER._reg.div = <span class="red">0</span>; <span class="blu">break</span>;
+	    <span class="blu">case</span> <span class="red">0xFF05</span>: TIMER._reg.tima = val; <span class="blu">break</span>;
+	    <span class="blu">case</span> <span class="red">0xFF06</span>: TIMER._reg.tma = val; <span class="blu">break</span>;
+	    <span class="blu">case</span> <span class="red">0xFF07</span>: TIMER._reg.tac = val &amp; <span class="red">7</span>; <span class="blu">break</span>;
+	}
+    }</div>
+</div>
+<h3>Seeding a pseudo-random number generator</h3>
+<p>A major component of many games is unpredictability: Tetris, for instance, will throw an unknown pattern of pieces down the well, and the game consists of building rows using these pieces. Ideally, a computer provides unpredictability by generating random numbers, but this runs contrary to the methodical nature of a computer; it's not possible for a computer to provide a truly random pattern of numbers. Various algorithms exist to produce sequences of numbers that look superficially like they're random, and these are called <em>pseudo</em>-random number generation (PRNG) algorithms.</p>
+<p>A PRNG is generally implemented as a formula that, given a particular input number, will produce another number with almost no relation to the input. For Tetris, nothing so complicated is required; instead, the following code is used to produce a seemingly random block.</p>
+<div class="sample">
+ <h4>Tetris.asm: Select new block</h4>
+ <div class="inner">BLK_NEXT = <span class="red">0xC203</span>
+BLK_CURR = <span class="red">0xC213</span>
+REG_DIV  = <span class="red">0x04</span>
+
+NBLOCK: ld hl, BLK_CURR		<span class="grn">; Bring the next block</span>
+	ld a, (BLK_NEXT)	<span class="grn">; forward to current</span>
+	ld (hl),a
+	and <span class="red">0xFC</span>		<span class="grn">; Clear out any rotations</span>
+	ld c,a			<span class="grn">; and hold onto previous</span>
+
+	ld h,<span class="red">3</span>			<span class="grn">; Try the following 3 times</span>
+
+.seed:	ldh a, (REG_DIV)	<span class="grn">; Get a "random" seed</span>
+	ld b,a
+.loop:	xor a			<span class="grn">; Step down in sevens</span>
+.seven:	dec b			<span class="grn">; until zero is reached</span>
+	jr z, .next		<span class="grn">; This loop is equivalent</span>
+	inc a			<span class="grn">; to (a%7)*4</span>
+	inc a
+	inc a
+	inc a
+	cp <span class="red">28</span>
+	jr z, .loop
+	jr .seven
+
+.next:	ld e,a			<span class="grn">; Copy the new value</span>
+	dec h			<span class="grn">; If this is the</span>
+	jr z, .end		<span class="grn">; last try, just use this</span>
+	or c			<span class="grn">; Otherwise check</span>
+	and <span class="red">0xFC</span>		<span class="grn">; against the previous block</span>
+	cp c			<span class="grn">; If it's the same again,</span>
+	jr z, .seed		<span class="grn">; try another random number</span>
+.end:	ld a,e			<span class="grn">; Get the copy back</span>
+	ld (BLK_NEXT), a	<span class="grn">; This is our next block</span></div>
+</div>
+<p>The basis of the Tetris block selector is the DIV register: since the selection routine is only run once every few seconds, the register will have an unknown value on any given run, and it thus makes a fair approximation of a random number source. With the timer system having been emulated, Tetris and its clones can be emulated to full functionality, as shown in Figure 1.</p>
+<h3>Coming up: Sound</h3>
+<p>One aspect of game emulation which has been overlooked until now is the generation of sound, and the synchronisation of sound to the speed of the emulation. Over and above the aspect of sound generation by the emulator, is the method by which sound is output to the browser; the next part of this series will investigate the issues surrounding sound output mechanisms, and whether a coherent strategy can be put together for sound production in JavaScript.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Feb 2011.</em></p>
+<p><em>Article dated: 25th Feb 2011</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

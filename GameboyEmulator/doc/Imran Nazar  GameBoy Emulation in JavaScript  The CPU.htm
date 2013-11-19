@@ -1,0 +1,276 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0064)http://imrannazar.com/GameBoy-Emulation-in-JavaScript%3a-The-CPU -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: The CPU</title>
+  <meta http-equiv="description" content="JavaScript is often perceived as a Web scripting language, with a specialist purpose of manipulating HTML pages. JavaScript is, however, a general-purpose Turing-complete language: the best way to illustrate this is to emulate another system through JavaScript. In the first of a series of articles, I&#39;ll look at how a CPU can be emulated through JS, and start building an emulation core for the GameBoy console.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  The CPU_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  The CPU_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  The CPU_files/jsgb-cpu.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  The CPU_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  The CPU_files/jsgb-cpu.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-cpu.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-cpu.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  The CPU_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: The CPU</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript%3a-The-CPU#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 1 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+  The emulator described in this series is available in source form: <a href="http://github.com/Two9A/jsGB">http://github.com/Two9A/jsGB</a>
+ </em>
+<p></p>
+<p>It's often stated that JavaScript is a special-purpose language, designed for use by web sites to enable dynamic interaction. However, JavaScript is a full object-oriented programming language, and is used in arenas besides the Web: the Widgets available for recent versions of Windows and Apple's Mac OS are implemented in JavaScript, as is the GUI for the Mozilla application suite.</p>
+<p>With the recent introduction of the <code>&lt;canvas&gt;</code> tag to HTML, the question arises as to whether a JavaScript program is capable of emulating a system, much like desktop applications are available to emulate the Commodore 64, GameBoy Advance and other gaming consoles. The simplest way of checking whether this is viable is, of course, to write such an emulator in JavaScript.</p>
+<p>This article sets out to implement the basis for a GameBoy emulation, by laying the groundwork for emulating each part of the physical machine. The starting point is the CPU.</p>
+<h3>The model</h3>
+<p>The traditional model of a computer is a processing unit, which gets told what to do by a program of instructions; the program might be accessed with its own special memory, or it might be sitting in the same area as normal memory, depending on the computer. Each instruction takes a short amount of time to run, and they're all run one by one. From the CPU's perspective, a loop starts up as soon as the computer is turned on, to fetch an instruction from memory, work out what it says, and execute it.</p>
+<p>In order to keep track of where the CPU is within the program, a number is held by the CPU called the Program Counter (PC). After an instruction is fetched from memory, the PC is advanced by however many bytes make up the instruction.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  The CPU_files/jsgb-cpu-fetchloop.png" alt="Fetch-decode-execute loop">
+ <em>Figure 1: The fetch-decode-execute loop</em>
+</div>
+<p>The CPU in the original GameBoy is a modified Zilog Z80, so the following things are pertinent:</p>
+<ul>
+ <li>The Z80 is an 8-bit chip, so all the internal workings operate on one byte at a time;</li>
+ <li>The memory interface can address up to 65,536 bytes (a 16-bit address bus);</li>
+ <li>Programs are accessed through the same address bus as normal memory;</li>
+ <li>An instruction can be anywhere between one and three bytes.</li>
+</ul>
+<p>In addition to the PC, other numbers are held inside the CPU that can be used for calculation, and they're referred to as registers: A, B, C, D, E, H, and L. Each of them is one byte, so each one can hold a value from 0 to 255. Most of the instructions in the Z80 are used to handle values in these registers: loading a value from memory into a register, adding or subtracting values, and so forth.</p>
+<p>If there are 256 possible values in the first byte of an instruction, that makes for 256 possible instructions in the basic table. That table is detailed in the <a href="http://imrannazar.com/Gameboy-Z80-Opcode-Map">Gameboy Z80 opcode map</a> released on this site. Each of these can be simulated by a JavaScript function, that operates on an internal model of the registers, and produces effects on an internal model of the memory interface.</p>
+<p>There are other registers in the Z80, that deal with holding status: the flags register (F), whose operation is discussed below; and the stack pointer (SP) which is used alongside the PUSH and POP instructions for basic LIFO handling of values. The basic model of the Z80 emulation would therefore require the following components:</p>
+<ul>
+ <li>An internal state:
+  <ul>
+   <li>A structure for retaining the current state of the registers;</li>
+   <li>The amount of time used to execute the last instruction;</li>
+   <li>The amount of time that the CPU has run in total;</li>
+  </ul>
+ </li>
+ <li>Functions to simulate each instruction;</li>
+ <li>A table mapping said functions onto the opcode map;</li>
+ <li>A known interface to talk to the simulated memory.</li>
+</ul>
+<p>The internal state can be held as follows:</p>
+<div class="sample">
+ <h4>Z80.js: Internal state values</h4>
+ <div class="inner">Z80 = {
+    <span class="grn">// Time clock: The Z80 holds two types of clock (m and t)</span>
+    _clock: {m:<span class="red">0</span>, t:<span class="red">0</span>},
+
+    <span class="grn">// Register set</span>
+    _r: {
+        a:<span class="red">0</span>, b:<span class="red">0</span>, c:<span class="red">0</span>, d:<span class="red">0</span>, e:<span class="red">0</span>, h:<span class="red">0</span>, l:<span class="red">0</span>, f:<span class="red">0</span>,    <span class="grn">// 8-bit registers</span>
+        pc:<span class="red">0</span>, sp:<span class="red">0</span>,                                <span class="grn">// 16-bit registers</span>
+        m:<span class="red">0</span>, t:<span class="red">0</span>                                   <span class="grn">// Clock for last instr</span>
+    }
+};</div>
+</div>
+<p>The flags register (F) is important to the functioning of the processor: it automatically calculates certain bits, or flags, based on the result of the last operation. There are four flags in the Gameboy Z80:</p>
+<ul>
+ <li>Zero (0x80): Set if the last operation produced a result of 0;</li>
+ <li>Operation (0x40): Set if the last operation was a subtraction;</li>
+ <li>Half-carry (0x20): Set if, in the result of the last operation, the lower half of the byte overflowed past 15;</li>
+ <li>Carry (0x10): Set if the last operation produced a result over 255 (for additions) or under 0 (for subtractions).</li>
+</ul>
+<p>Since the basic calculation registers are 8-bits, the carry flag allows for the software to work out what happened to a value if the result of a calculation overflowed the register. With these flag handling issues in mind, a few examples of instruction simulations are shown below. These examples are simplified, and don't calculate the half-carry flag.</p>
+<div class="sample">
+ <h4>Z80.js: Instruction simulations</h4>
+ <div class="inner">Z80 = {
+    <span class="grn">// Internal state</span>
+    _clock: {m:<span class="red">0</span>, t:<span class="red">0</span>},
+    _r: {a:<span class="red">0</span>, b:<span class="red">0</span>, c:<span class="red">0</span>, d:<span class="red">0</span>, e:<span class="red">0</span>, h:<span class="red">0</span>, l:<span class="red">0</span>, f:<span class="red">0</span>, pc:<span class="red">0</span>, sp:<span class="red">0</span>, m:<span class="red">0</span>, t:<span class="red">0</span>},
+
+    <span class="grn">// Add E to A, leaving result in A (ADD A, E)</span>
+    ADDr_e: <span class="blu">function</span>() {
+        Z80._r.a += Z80._r.e;                      <span class="grn">// Perform addition</span>
+        Z80._r.f = <span class="red">0</span>;                              <span class="grn">// Clear flags</span>
+        <span class="blu">if</span>(!(Z80._r.a &amp; <span class="red">255</span>)) Z80._r.f |= <span class="red">0x80</span>;    <span class="grn">// Check for zero</span>
+        <span class="blu">if</span>(Z80._r.a &gt; <span class="red">255</span>) Z80._r.f |= <span class="red">0x10</span>;       <span class="grn">// Check for carry</span>
+        Z80._r.a &amp;= <span class="red">255</span>;                           <span class="grn">// Mask to 8-bits</span>
+        Z80._r.m = <span class="red">1</span>; Z80._r.t = <span class="red">4</span>;                <span class="grn">// 1 M-time taken</span>
+    }
+
+    <span class="grn">// Compare B to A, setting flags (CP A, B)</span>
+    CPr_b: <span class="blu">function</span>() {
+        <span class="blu">var</span> i = Z80._r.a;                          <span class="grn">// Temp copy of A</span>
+        i -= Z80._r.b;                             <span class="grn">// Subtract B</span>
+        Z80._r.f |= <span class="red">0x40</span>;                          <span class="grn">// Set subtraction flag</span>
+        <span class="blu">if</span>(!(i &amp; <span class="red">255</span>)) Z80._r.f |= <span class="red">0x80</span>;       <span class="grn">    // Check for zero</span>
+        <span class="blu">if</span>(i &lt; <span class="red">0</span>) Z80._r.f |= <span class="red">0x10</span>;             <span class="grn">   // Check for underflow</span>
+        Z80._r.m = <span class="red">1</span>; Z80._r.t = <span class="red">4</span>;                <span class="grn">// 1 M-time taken</span>
+    }
+
+    <span class="grn">// No-operation (NOP)</span>
+    NOP: <span class="blu">function</span>() {
+        Z80._r.m = <span class="red">1</span>; Z80._r.t = <span class="red">4</span>;                <span class="grn">// 1 M-time taken</span>
+    }
+};</div>
+</div>
+<h3>Memory interfacing</h3>
+<p>A processor that can manipulate registers within itself is all well and good, but it must be able to put results into memory to be useful. In the same way, the above CPU emulation requires an interface to emulated memory; this can be provided by a memory management unit (MMU). Since the Gameboy itself doesn't contain a complicated MMU, the emulated unit can be quite simple.</p>
+<p>At this point, the CPU only needs to know that an interface is present; the details of how the Gameboy maps banks of memory and hardware onto the address bus are inconsequential to the processor's operation. Four operations are required by the CPU:</p>
+<div class="sample">
+ <h4>MMU.js: Memory interface</h4>
+ <div class="inner">MMU = {
+    rb: <span class="blu">function</span>(addr) { <span class="grn">/* Read 8-bit byte from a given address */</span> },
+    rw: <span class="blu">function</span>(addr) { <span class="grn">/* Read 16-bit word from a given address */</span> },
+
+    wb: <span class="blu">function</span>(addr, val) { <span class="grn">/* Write 8-bit byte to a given address */</span> },
+    ww: <span class="blu">function</span>(addr, val) { <span class="grn">/* Write 16-bit word to a given address */</span> }
+};</div>
+</div>
+<p>With these in place, the rest of the CPU instructions can be simulated. Another few examples are shown below:</p>
+<div class="sample">
+ <h4>Z80.js: Memory-handling instructions</h4>
+ <div class="inner">
+    <span class="grn">// Push registers B and C to the stack (PUSH BC)</span>
+    PUSHBC: <span class="blu">function</span>() {
+        Z80._r.sp--;                               <span class="grn">// Drop through the stack</span>
+	MMU.wb(Z80._r.sp, Z80._r.b);               <span class="grn">// Write B</span>
+	Z80._r.sp--;                               <span class="grn">// Drop through the stack</span>
+	MMU.wb(Z80._r.sp, Z80._r.c);               <span class="grn">// Write C</span>
+	Z80._r.m = <span class="red">3</span>; Z80._r.t = <span class="red">12</span>;               <span class="grn">// 3 M-times taken</span>
+    },
+
+    <span class="grn">// Pop registers H and L off the stack (POP HL)</span>
+    POPHL: <span class="blu">function</span>() {
+        Z80._r.l = MMU.rb(Z80._r.sp);              <span class="grn">// Read L</span>
+	Z80._r.sp++;                               <span class="grn">// Move back up the stack</span>
+	Z80._r.h = MMU.rb(Z80._r.sp);              <span class="grn">// Read H</span>
+	Z80._r.sp++;                               <span class="grn">// Move back up the stack</span>
+	Z80._r.m = <span class="red">3</span>; Z80._r.t = <span class="red">12</span>;               <span class="grn">// 3 M-times taken</span>
+    }
+
+    <span class="grn">// Read a byte from absolute location into A (LD A, addr)</span>
+    LDAmm: <span class="blu">function</span>() {
+        <span class="blu">var</span> addr = MMU.rw(Z80._r.pc);              <span class="grn">// Get address from instr</span>
+	Z80._r.pc += <span class="red">2</span>;                            <span class="grn">// Advance PC</span>
+	Z80._r.a = MMU.rb(addr);                   <span class="grn">// Read from address</span>
+	Z80._r.m = <span class="red">4</span>; Z80._r.t=<span class="red">16</span>;                 <span class="grn">// 4 M-times taken</span>
+    }</div>
+</div>
+<h3>Dispatch and reset</h3>
+<p>With the instructions in place, the remaining pieces of the puzzle for the CPU are to reset the CPU when it starts up, and to feed instructions to the emulation routines. Having a reset routine allows for the CPU to be stopped and "rewound" to the start of execution; an example is shown below.</p>
+<div class="sample">
+ <h4>Z80.js: Reset</h4>
+ <div class="inner">    reset: <span class="blu">function</span>() {
+	Z80._r.a = <span class="red">0</span>; Z80._r.b = <span class="red">0</span>; Z80._r.c = <span class="red">0</span>; Z80._r.d = <span class="red">0</span>;
+	Z80._r.e = <span class="red">0</span>; Z80._r.h = <span class="red">0</span>; Z80._r.l = <span class="red">0</span>; Z80._r.f = <span class="red">0</span>;
+	Z80._r.sp = <span class="red">0</span>;
+	Z80._r.pc = <span class="red">0</span>;      <span class="grn">// Start execution at 0</span>
+
+	Z80._clock.m = <span class="red">0</span>; Z80._clock.t = <span class="red">0</span>;
+    }</div>
+</div>
+<p>In order for the emulation to run, it has to emulate the fetch-decode-execute sequence detailed earlier. "Execute" is taken care of by the instruction emulation functions, but fetch and decode require a specialist piece of code, known as a "dispatch loop". This loop takes each instruction, decodes where it must be sent for execution, and dispatches it to the function in question.</p>
+<div class="sample">
+ <h4>Z80.js: Dispatcher</h4>
+ <div class="inner"><span class="blu">while</span>(<span class="red">true</span>)
+{
+    <span class="blu">var</span> op = MMU.rb(Z80._r.pc++);              <span class="grn">// Fetch instruction</span>
+    Z80._map[op]();                            <span class="grn">// Dispatch</span>
+    Z80._r.pc &amp;= <span class="red">65535</span>;                    <span class="grn">    // Mask PC to 16 bits</span>
+    Z80._clock.m += Z80._r.m;                  <span class="grn">// Add time to CPU clock</span>
+    Z80._clock.t += Z80._r.t;
+}
+
+Z80._map = [
+    Z80._ops.NOP,
+    Z80._ops.LDBCnn,
+    Z80._ops.LDBCmA,
+    Z80._ops.INCBC,
+    Z80._ops.INCr_b,
+    ...
+];</div>
+</div>
+<h3>Usage in a system emulation</h3>
+<p>Implementing a Z80 emulation core is useless without an emulator to run it. In the next part of this series, the work of emulating the Gameboy begins: I'll be looking at the Gameboy's memory map, and how a game image can be loaded into the emulator over the Web.</p>
+<p>The complete Z80 core is available at: <a href="http://imrannazar.com/content/files/jsgb.z80.js">http://imrannazar.com/content/files/jsgb.z80.js</a>; please feel free to let me know if you encounter any bugs in the implementation.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Jul 2010.</em></p>
+<p><em>Article dated: 22nd Jul 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0061)http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <title>Imran Nazar: GameBoy Emulation in JavaScript: Memory</title>
+  <meta http-equiv="description" content="Continuing a series examining system emulation in JavaScript, this article examines how the GameBoy memories are mapped onto the CPU&#39;s address bus, and how such a mapping can be emulated. Also covered is the dynamic loading of program ROM images after initialisation, through asynchronous file requests.">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Memory_files/index.css" type="text/css" rel="stylesheet">
+  <link href="./Imran Nazar  GameBoy Emulation in JavaScript  Memory_files/content.css" type="text/css" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="./Imran Nazar  GameBoy Emulation in JavaScript  Memory_files/jsgb-mmu.css">
+  <link rel="alternate" type="application/rss+xml" href="http://imrannazar.com/rss.xml" title="ImranNazar.com">
+  <script type="text/javascript" async="" src="http://www.google-analytics.com/ga.js"></script><script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Memory_files/jquery.min.js"></script><style type="text/css"></style>
+  <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Memory_files/jsgb-mmu.js"></script>
+  <style type="text/css">
+#head h1 { filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=crop,src='http://imrannazar.com/content/titles/jsgb-mmu.png'); }
+#head > h1 { background: url(http://imrannazar.com/content/titles/jsgb-mmu.png) no-repeat top left; }
+  </style>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-38513874-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+ <script type="text/javascript" src="./Imran Nazar  GameBoy Emulation in JavaScript  Memory_files/MathJax.js"></script><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Hover_Arrow {position: absolute; width: 15px; height: 11px; cursor: pointer}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; color: #666666}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_Menu_Close {position: absolute; width: 31px; height: 31px; top: -15px; left: -15px}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style></head>
+ <body><div id="MathJax_Message" style="display: none;"></div>
+  <div id="wrapper">
+   <div id="head">
+    <h1><a href="http://imrannazar.com/">Imran Nazar</a>: GameBoy Emulation in JavaScript: Memory</h1>
+    <a id="navlink" href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory#nav">Skip to navigation</a>
+   </div>
+   <div id="container">
+    <div id="content">
+<p>
+ <em>This is part 2 of an article series on emulation development in JavaScript; ten parts are currently available, and others are expected to follow.
+  </em></p><ul><em>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU">Part 1: The CPU</a></li>
+   <li><a href="./Imran Nazar  GameBoy Emulation in JavaScript  Memory_files/Imran Nazar  GameBoy Emulation in JavaScript  Memory.htm">Part 2: Memory</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings">Part 3: GPU Timings</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Graphics">Part 4: Graphics</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Integration">Part 5: Integration</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Input">Part 6: Input</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Sprites">Part 7: Sprites</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Interrupts">Part 8: Interrupts</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Memory-Banking">Part 9: Memory Banking</a></li>
+   <li><a href="http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-Timers">Part 10: Timers</a></li>
+  </em></ul><em>
+  The emulator described in this series is available in source form: <a href="http://github.com/Two9A/jsGB">http://github.com/Two9A/jsGB</a>
+ </em>
+<p></p>
+<p>In the previous part of this series, the computer was introduced as a processing unit, which fetches its instructions from memory. In almost every case, a computer's memory is not a simple contiguous region; the GameBoy is no exception in this regard. Since the GameBoy CPU can access 65,536 individual locations on its address bus, a "memory map" can be drawn of all the regions where the CPU has access.</p>
+<div class="img">
+ <img src="./Imran Nazar  GameBoy Emulation in JavaScript  Memory_files/jsgb-mmu-map.png" alt="GameBoy memory map">
+ <em>Figure 1: Memory map of the GameBoy address bus</em>
+</div>
+<p>A more detailed look at the memory regions is as follows:</p>
+<ul>
+ <li><strong>[0000-3FFF] Cartridge ROM, bank 0</strong>: The first 16,384 bytes of the cartridge program are always available at this point in the memory map. Special circumstances apply:
+  <ul>
+   <li><strong>[0000-00FF] BIOS</strong>: When the CPU starts up, PC starts at <code>0000h</code>, which is the start of the 256-byte GameBoy BIOS code. Once the BIOS has run, it is removed from the memory map, and this area of the cartridge rom becomes addressable.</li>
+   <li><strong>[0100-014F] Cartridge header</strong>: This section of the cartridge contains data about its name and manufacturer, and must be written in a specific format.</li>
+  </ul>
+ </li>
+ <li><strong>[4000-7FFF] Cartridge ROM, other banks</strong>: Any subsequent 16k "banks" of the cartridge program can be made available to the CPU here, one by one; a chip on the cartridge is generally used to switch between banks, and make a particular area accessible. The smallest programs are 32k, which means that no bank-selection chip is required.</li>
+ <li><strong>[8000-9FFF] Graphics RAM</strong>: Data required for the backgrounds and sprites used by the graphics subsystem is held here, and can be changed by the cartridge program. This region will be examined in further detail in part 3 of this series.</li>
+ <li><strong>[A000-BFFF] Cartridge (External) RAM</strong>: There is a small amount of writeable memory available in the GameBoy; if a game is produced that requires more RAM than is available in the hardware, additional 8k chunks of RAM can be made addressable here.</li>
+ <li><strong>[C000-DFFF] Working RAM</strong>: The GameBoy's internal 8k of RAM, which can be read from or written to by the CPU.</li>
+ <li><strong>[E000-FDFF] Working RAM (shadow)</strong>: Due to the wiring of the GameBoy hardware, an exact copy of the working RAM is available 8k higher in the memory map. This copy is available up until the last 512 bytes of the map, where other areas are brought into access.</li>
+ <li><strong>[FE00-FE9F] Graphics: sprite information</strong>: Data about the sprites rendered by the graphics chip are held here, including the sprites' positions and attributes.</li>
+ <li><strong>[FF00-FF7F] Memory-mapped I/O</strong>: Each of the GameBoy's subsystems (graphics, sound, etc.) has control values, to allow programs to create effects and use the hardware. These values are available to the CPU directly on the address bus, in this area.</li>
+ <li><strong>[FF80-FFFF] Zero-page RAM</strong>: A high-speed area of 128 bytes of RAM is available at the top of memory. Oddly, though this is "page" 255 of the memory, it is referred to as page zero, since most of the interaction between the program and the GameBoy hardware occurs through use of this page of memory.</li>
+</ul>
+<h3>Interfacing to the CPU</h3>
+<p>In order for the emulated CPU to access these regions separately, each must be handled as a special case in the memory management unit. This part of the code was alluded to in the previous part, and a basic interface described for the MMU object; the fleshing out of the interface can be as simple as a <code>switch</code> statement.</p>
+<div class="sample">
+ <h4>MMU.js: Mapped read</h4>
+ <div class="inner">MMU = {
+    <span class="grn">// Flag indicating BIOS is mapped in
+    // BIOS is unmapped with the first instruction above 0x00FF</span>
+    _inbios: <span class="red">1</span>,
+
+    <span class="grn">// Memory regions (initialised at reset time)</span>
+    _bios: [],
+    _rom: [],
+    _wram: [],
+    _eram: [],
+    _zram: [],
+
+    <span class="grn">// Read a byte from memory</span>
+    rb: <span class="blu">function</span>(addr)
+    {
+	<span class="blu">switch</span>(addr &amp; <span class="red">0xF000</span>)
+	{
+	    <span class="grn">// BIOS (256b)/ROM0</span>
+	    <span class="blu">case</span> <span class="red">0x0000</span>:
+	        <span class="blu">if</span>(MMU._inbios)
+		{
+		    <span class="blu">if</span>(addr &lt; <span class="red">0x0100</span>)
+		        <span class="blu">return</span> MMU._bios[addr];
+		    <span class="blu">else if</span>(Z80._r.pc == <span class="red">0x0100</span>)
+		        MMU._inbios = <span class="red">0</span>;
+		}
+
+		<span class="blu">return</span> MMU._rom[addr];
+
+	    <span class="grn">// ROM0</span>
+	    <span class="blu">case</span> <span class="red">0x1000</span>:
+	    <span class="blu">case</span> <span class="red">0x2000</span>:
+	    <span class="blu">case</span> <span class="red">0x3000</span>:
+	        <span class="blu">return</span> MMU._rom[addr];
+
+	    <span class="grn">// ROM1 (unbanked) (16k)</span>
+	    <span class="blu">case</span> <span class="red">0x4000</span>:
+	    <span class="blu">case</span> <span class="red">0x5000</span>:
+	    <span class="blu">case</span> <span class="red">0x6000</span>:
+	    <span class="blu">case</span> <span class="red">0x7000</span>:
+	        <span class="blu">return</span> MMU._rom[addr];
+
+	    <span class="grn">// Graphics: VRAM (8k)</span>
+	    <span class="blu">case</span> <span class="red">0x8000</span>:
+	    <span class="blu">case</span> <span class="red">0x9000</span>:
+	        <span class="blu">return</span> GPU._vram[addr &amp; <span class="red">0x1FFF</span>];
+
+	    <span class="grn">// External RAM (8k)</span>
+	    <span class="blu">case</span> <span class="red">0xA000</span>:
+	    <span class="blu">case</span> <span class="red">0xB000</span>:
+	        <span class="blu">return</span> MMU._eram[addr &amp; <span class="red">0x1FFF</span>];
+
+	    <span class="grn">// Working RAM (8k)</span>
+	    <span class="blu">case</span> <span class="red">0xC000</span>:
+	    <span class="blu">case</span> <span class="red">0xD000</span>:
+	        <span class="blu">return</span> MMU._wram[addr &amp; <span class="red">0x1FFF</span>];
+
+	    <span class="grn">// Working RAM shadow</span>
+	    <span class="blu">case</span> <span class="red">0xE000</span>:
+	        <span class="blu">return</span> MMU._wram[addr &amp; <span class="red">0x1FFF</span>];
+
+	    <span class="grn">// Working RAM shadow, I/O, Zero-page RAM</span>
+	    <span class="blu">case</span> <span class="red">0xF000</span>:
+	        <span class="blu">switch</span>(addr &amp; <span class="red">0x0F00</span>)
+		{
+		    <span class="grn">// Working RAM shadow</span>
+		    <span class="blu">case</span> <span class="red">0x000</span>: <span class="blu">case</span> <span class="red">0x100</span>: <span class="blu">case</span> <span class="red">0x200</span>: <span class="blu">case</span> <span class="red">0x300</span>:
+		    <span class="blu">case</span> <span class="red">0x400</span>: <span class="blu">case</span> <span class="red">0x500</span>: <span class="blu">case</span> <span class="red">0x600</span>: <span class="blu">case</span> <span class="red">0x700</span>:
+		    <span class="blu">case</span> <span class="red">0x800</span>: <span class="blu">case</span> <span class="red">0x900</span>: <span class="blu">case</span> <span class="red">0xA00:</span> <span class="blu">case</span> <span class="red">0xB00</span>:
+		    <span class="blu">case</span> <span class="red">0xC00</span>: <span class="blu">case</span> <span class="red">0xD00</span>:
+		        <span class="blu">return</span> MMU._wram[addr &amp; <span class="red">0x1FFF</span>];
+
+		    <span class="grn">// Graphics: object attribute memory
+		    // OAM is 160 bytes, remaining bytes read as 0</span>
+		    <span class="blu">case</span> <span class="red">0xE00</span>:
+		        <span class="blu">if</span>(addr &lt; <span class="red">0xFEA0</span>)
+			    <span class="blu">return</span> GPU._oam[addr &amp; <span class="red">0xFF</span>];
+			<span class="blu">else</span>
+			    <span class="blu">return</span> <span class="red">0</span>;
+
+		    <span class="grn">// Zero-page</span>
+		    <span class="blu">case</span> <span class="red">0xF00</span>:
+		        <span class="blu">if</span>(addr &gt;= <span class="red">0xFF80</span>)
+			{
+			    <span class="blu">return</span> MMU._zram[addr &amp; <span class="red">0x7F</span>];
+			}
+			<span class="blu">else</span>
+			{
+			    <span class="grn">// I/O control handling
+			    // Currently unhandled</span>
+			    <span class="blu">return</span> <span class="red">0</span>;
+			}
+		}
+	}
+    },
+
+    <span class="grn">Read a 16-bit word</span>
+    rw: <span class="blu">function</span>(addr)
+    {
+        <span class="blu">return</span> MMU.rb(addr) + (MMU.rb(addr+<span class="red">1</span>) &lt;&lt; <span class="red">8</span>);
+    }
+};</div>
+</div>
+<p>In the above section of code, it should be noted that the region of memory between <code>0xFF00</code> and <code>0xFF7F</code> is unhandled; these locations are used as memory-mapped I/O for the various chips that provide I/O, and will be defined as these systems are covered in later parts.</p>
+<p>Writing a byte is handled in a very similar manner; each operation is reversed, and values are written to the various regions of memory instead of returned from the function. For this reason, it is not necessary to provide a full extrapolation of the <code>wb</code> function here.
+</p><h3>Loading a ROM</h3>
+<p>Just as a CPU emulation is useless without its supporting elements of memory access, graphics and so on, being able to read a program from memory is useless without a program loaded. There are two main ways to pull a program into an emulator: hard-code it into the emulator's source code, or allow for loading of a ROM file from a certain location. The obvious disadvantage of hard-coding the program is that it's fixed, and cannot easily be changed.</p>
+<p>In the case of this JavaScript emulator, the GameBoy BIOS is hard-coded into the MMU, because it isn't liable to change; the program file is, however, loaded from the server asynchronously, after the emulator has initialised. This can be done through XMLHTTP, using a binary file reader such as <a href="http://nagoon97.wordpress.com/2008/04/06/reading-binary-files-using-ajax/">Andy Na's BinFileReader</a>; the result of this is a string containing the ROM file.</p>
+<div class="sample">
+ <h4>MMU.js: ROM file loading</h4>
+ <div class="inner">MMU.load = <span class="blu">function</span>(file)
+{
+    <span class="blu">var</span> b = new BinFileReader(file);
+    MMU._rom = b.readString(b.getFileSize(), <span class="red">0</span>);
+};</div>
+</div>
+<p>Since the ROM file is held as a string, instead of an array of numbers, the <code>rb</code> and <code>wb</code> functions must be changed to index a string:</p>
+<div class="sample">
+ <h4>MMU.js: ROM file indexing</h4>
+ <div class="inner">	    <span class="blu">case</span> <span class="red">0x1000</span>:
+	    <span class="blu">case</span> <span class="red">0x2000</span>:
+	    <span class="blu">case</span> <span class="red">0x3000</span>:
+	        <span class="blu">return</span> MMU._rom.charCodeAt(addr);
+ </div>
+</div>
+<h3>Next steps</h3>
+<p>With a CPU and MMU in place, it is possible to watch a program being executed, step by step: an emulation can be achieved, and produce the expected values in the right registers. What's missing is a sense of what that means for graphical output. In the next part of this series, the issue of graphics will be looked at, including how the GameBoy structures its graphic output, and how to render graphics onto the screen.</p>
+<p>As with part 1, the source for this article is available at: <a href="http://imrannazar.com/content/files/jsgb.mmu.js">http://imrannazar.com/content/files/jsgb.mmu.js</a>.</p>
+<p><em>Imran Nazar &lt;<a href="mailto:tf@imrannazar.com">tf@imrannazar.com</a>&gt;, Aug 2010.</em></p>
+<p><em>Article dated: 2nd Aug 2010</em></p>    
+    </div>
+   </div>
+   <div id="foot">
+    <div class="inner">
+     Operated by Imran Nazar Ltd, registered in the UK (#07698370). Content copyright Imran Nazar, 2005-2011.<br>
+     Design and imagery copyright Imran Nazar, 2008-2011; "Parchment" used by license from <a href="http://sxc.hu/">sxc</a>.
+    </div>
+   </div>
+   <ul id="nav">
+    <li id="nav_Articles"><a href="http://imrannazar.com/Articles">Articles</a></li>
+    <li id="nav_Programming"><a href="http://imrannazar.com/Programming">Programming</a></li>
+    <li id="nav_Fiction"><a href="http://imrannazar.com/Fiction">Fiction</a></li>
+    <li id="nav_Contact"><a href="http://imrannazar.com/Contact">Get in touch</a></li>
+   </ul>
+   <a href="http://imrannazar.com/rss.xml" id="rss">Get the RSS feed</a>
+   <div id="ads">
+<script type="text/javascript"><!--
+google_ad_client = "pub-2619534444109891";
+/* 120x600, imrannazar, created 6/11/09 */
+google_ad_slot = "5424306243";
+google_ad_width = 120;
+google_ad_height = 600;
+//-->
+</script>
+<script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js"></script>
+   </div>
+  </div>
+ 
+
+</body></html>
